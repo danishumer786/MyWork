@@ -13,35 +13,27 @@ public:
         textCtrl_->AppendText("Received Data:\n");
         wxString currentTime = wxDateTime::Now().Format("%H:%M:%S");
 
-        float tec1Current = 0.0f, tec2Current = 0.0f;
-        float tec1Voltage = 0.0f, tec2Voltage = 0.0f;
-        bool tec1CurrentFound = false, tec2CurrentFound = false;
-        bool tec1VoltageFound = false, tec2VoltageFound = false;
+        // Vectors to hold currents and voltages (if available)
+        std::vector<float> currents;
+        std::vector<float> voltages;
 
+        bool currentDataFound = false;
+        bool voltageDataFound = false;
+
+        // Parse the map and extract the data
         for (const auto& entry : data) {
             std::string logEntry = entry.first + ": " + entry.second + "\n";
-            textCtrl_->AppendText(logEntry);
+            textCtrl_->AppendText(logEntry);  // Log the received data
 
             try {
-                // Check for TEC1 current
-                if (entry.first.find("TecCurrent-SHG") != std::string::npos) {
-                    tec1Current = std::stof(entry.second);
-                    tec1CurrentFound = true;
+                // Check if the entry is a current or voltage
+                if (entry.first.find("TecCurrent-") != std::string::npos) {
+                    currents.push_back(std::stof(entry.second));  // Store the current value
+                    currentDataFound = true;
                 }
-                // Check for TEC2 current
-                else if (entry.first.find("TecCurrent-THG") != std::string::npos) {
-                    tec2Current = std::stof(entry.second);
-                    tec2CurrentFound = true;
-                }
-                // Check for TEC1 voltage
-                else if (entry.first.find("TecVoltage-SHG") != std::string::npos) {
-                    tec1Voltage = std::stof(entry.second);
-                    tec1VoltageFound = true;
-                }
-                // Check for TEC2 voltage
-                else if (entry.first.find("TecVoltage-THG") != std::string::npos) {
-                    tec2Voltage = std::stof(entry.second);
-                    tec2VoltageFound = true;
+                else if (entry.first.find("TecVoltage-") != std::string::npos) {
+                    voltages.push_back(std::stof(entry.second));  // Store the voltage value
+                    voltageDataFound = true;
                 }
             }
             catch (const std::exception& e) {
@@ -49,9 +41,9 @@ public:
             }
         }
 
-        // Pass data to GraphPlotting if all values are found
-        if (tec1CurrentFound && tec2CurrentFound && tec1VoltageFound && tec2VoltageFound) {
-            graphPlot_->AddDataPoint(tec1Current, tec2Current, tec1Voltage, tec2Voltage, currentTime);  // Pass all data and time to GraphPlotting
+        // If either currents or voltages are found, pass them to GraphPlotting
+        if (currentDataFound || voltageDataFound) {
+            graphPlot_->AddDataPoint(currents, voltages, currentTime);  // Pass only the available data
         }
     }
 

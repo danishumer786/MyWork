@@ -13,9 +13,9 @@ GraphWindow::GraphWindow(wxWindow* parent, const wxString& title, const wxSize& 
     this->Show(true);
 }
 
-// Updated to handle four data points: TEC1 Current, TEC2 Current, TEC1 Voltage, TEC2 Voltage
-void GraphWindow::UpdateGraph(float tec1Current, float tec2Current, float tec1Voltage, float tec2Voltage, const wxString& time) {
-    // Pass four values (two for current, two for voltage) along with time to GraphPlotting
-    graphPlotting_->AddDataPoint(tec1Current, tec2Current, tec1Voltage, tec2Voltage, time);
+// Updated to handle vectors for multiple TECs' current and voltage
+void GraphWindow::UpdateGraph(const std::vector<float>& currents, const std::vector<float>& voltages, const wxString& time) {
+    // Pass vectors of current and voltage along with time to GraphPlotting
+    graphPlotting_->AddDataPoint(currents, voltages, time);
     graphPlotting_->RefreshGraph();  // Refresh graph rendering
 }
