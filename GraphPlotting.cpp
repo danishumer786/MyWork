@@ -4,8 +4,8 @@
 #include <limits>
 
 BEGIN_EVENT_TABLE(GraphPlotting, wxPanel)
-EVT_PAINT(GraphPlotting::paintEvent)
-EVT_SIZE(GraphPlotting::OnResize)
+    EVT_PAINT(GraphPlotting::paintEvent)
+    EVT_SIZE(GraphPlotting::OnResize)
 END_EVENT_TABLE()
 
 GraphPlotting::GraphPlotting(wxWindow* parent, wxWindowID winid, const wxPoint& pos, const wxSize& size)
@@ -36,7 +36,6 @@ void GraphPlotting::render(wxDC& dc) {
     dc.Clear();  // Clear the canvas before drawing
 
     if (currentData_.empty() && voltageData_.empty()) {
-        //wxLogMessage("No data to plot");
         return;
     }
 
@@ -62,10 +61,21 @@ void GraphPlotting::render(wxDC& dc) {
         }
     }
 
-    // Calculate scaling factors for plotting
-    float yScale = static_cast<float>(height - 50) / (maxValue - minValue);  // Y-axis scaling
-    float xStep = static_cast<float>(width - 100) / (timeData_.size() - 1);  // X-axis scaling
+    // Make sure minValue and maxValue are not equal to avoid division by zero
+    if (maxValue == minValue) {
+        maxValue += 1.0f;  // Add a small buffer to avoid zero division
+    }
 
+    // Calculate scaling factors for plotting
+    float yScale = static_cast<float>(height - 50) / (maxValue - minValue); // Y-axis scaling based on data range
+    float xStep = static_cast<float>(width - 100) / (timeData_.size() - 1);  // X-axis scaling based on number of points
+
+    // Draw Y-axis labels
+    for (int i = 0; i <= 10; ++i) {
+        int yPos = height - 50 - static_cast<int>((i * (height - 50)) / 10);
+        float value = minValue + i * (maxValue - minValue) / 10;
+        dc.DrawText(wxString::Format("%.2f", value), wxPoint(10, yPos));
+    }
     // Define colors for TECs
     std::vector<wxColour> colors = {
         wxColour(255, 0, 0),    // Red for TEC 1 Current
@@ -76,9 +86,28 @@ void GraphPlotting::render(wxDC& dc) {
         wxColour(255, 0, 255)   // Magenta for TEC 3 Voltage (if needed)
     };
 
+    // Draw X-axis labels and grid lines
+    if (!timeData_.empty() && timeData_.size() > 1) {
+        size_t maxLabels = 10;
+        size_t labelInterval = std::max(1, static_cast<int>(timeData_.size() / maxLabels));
+
+        for (size_t i = 0; i < timeData_.size(); i += labelInterval) {
+            int x = static_cast<int>(i * (width - 100) / (timeData_.size() - 1));
+
+            // Draw vertical grid lines
+            dc.SetPen(wxPen(wxColour(200, 200, 200), 1, wxPENSTYLE_DOT));  // Light gray dotted lines for grid
+            dc.DrawLine(x + 50, 0, x + 50, height - 50);
+
+            // Label the X-axis
+            dc.SetPen(wxPen(wxColour(0, 0, 0), 1));  // Black for text
+            dc.SetFont(wxFont(8, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL));  // Smaller font size
+            dc.DrawText(timeData_[i], wxPoint(x + 45, height - 40));
+        }
+    }
+
     // Plot current values for each TEC
     for (size_t tec = 0; tec < currentData_.front().size(); ++tec) {
-        dc.SetPen(wxPen(colors[tec * 2 % colors.size()], 2));  // Multiply index by 2 for current
+        dc.SetPen(wxPen(colors[tec * 2 % colors.size()], 2));  // Use different colors for each TEC current
         for (size_t i = 1; i < currentData_.size(); ++i) {
             int x1 = static_cast<int>((i - 1) * xStep + 50);
             int y1 = height - 50 - static_cast<int>((currentData_[i - 1][tec] - minValue) * yScale);
@@ -90,7 +119,7 @@ void GraphPlotting::render(wxDC& dc) {
 
     // Plot voltage values for each TEC
     for (size_t tec = 0; tec < voltageData_.front().size(); ++tec) {
-        dc.SetPen(wxPen(colors[(tec * 2 + 1) % colors.size()], 2));  // Offset by 1 for voltage
+        dc.SetPen(wxPen(colors[(tec * 2 + 1) % colors.size()], 2));  // Use different colors for each TEC voltage
         for (size_t i = 1; i < voltageData_.size(); ++i) {
             int x1 = static_cast<int>((i - 1) * xStep + 50);
             int y1 = height - 50 - static_cast<int>((voltageData_[i - 1][tec] - minValue) * yScale);
@@ -166,6 +195,8 @@ void GraphPlotting::drawAxesLabels(wxDC& dc, int width, int height) {
     // X-axis label remains centered horizontally
     dc.DrawText("Time (hh:mm:ss)", wxPoint(width / 2 - 50, height + 20));
 }
+
+
 void GraphPlotting::paintEvent(wxPaintEvent& evt) {
     wxAutoBufferedPaintDC dc(this);  // Use buffered DC to avoid flickering
     render(dc);  // Call the render method to handle the actual drawing
