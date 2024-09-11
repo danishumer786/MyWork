@@ -28,11 +28,25 @@ public:
             try {
                 // Check if the entry is a current or voltage
                 if (entry.first.find("TecCurrent-") != std::string::npos) {
-                    currents.push_back(std::stof(entry.second));  // Store the current value
+                    float currentValue = std::stof(entry.second);
+
+                    // Debugging: Add a sanity check for high values
+                    if (currentValue > 1000) {  // Adjust threshold as per your needs
+                        wxLogError("Warning: Unusually high current value: %f", currentValue);
+                    }
+
+                    currents.push_back(currentValue);  // Store the current value
                     currentDataFound = true;
                 }
                 else if (entry.first.find("TecVoltage-") != std::string::npos) {
-                    voltages.push_back(std::stof(entry.second));  // Store the voltage value
+                    float voltageValue = std::stof(entry.second);
+
+                    // Debugging: Add a sanity check for high values
+                    if (voltageValue > 1000 || voltageValue < -1000) {  // Adjust threshold as per your needs
+                        wxLogError("Warning: Unusually high or low voltage value: %f", voltageValue);
+                    }
+
+                    voltages.push_back(voltageValue);  // Store the voltage value
                     voltageDataFound = true;
                 }
             }

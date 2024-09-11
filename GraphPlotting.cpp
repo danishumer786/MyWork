@@ -19,18 +19,39 @@ GraphPlotting::GraphPlotting(wxWindow* parent, wxWindowID winid, const wxPoint& 
 }
 
 void GraphPlotting::AddDataPoint(const std::vector<float>& currents, const std::vector<float>& voltages, const wxString& time) {
-    currentData_.push_back(currents);
-    voltageData_.push_back(voltages);
+    const float maxReasonableValue = 1000;  // Adjust this threshold based on realistic max value
+    const float minReasonableValue = -1000;
+
+    auto isValid = [](float value) { return value > minReasonableValue && value < maxReasonableValue; };
+
+    std::vector<float> filteredCurrents, filteredVoltages;
+
+    // Filter currents
+    std::copy_if(currents.begin(), currents.end(), std::back_inserter(filteredCurrents), isValid);
+
+    // Filter voltages
+    std::copy_if(voltages.begin(), voltages.end(), std::back_inserter(filteredVoltages), isValid);
+
+    // Add filtered data
+    currentData_.push_back(filteredCurrents);
+    voltageData_.push_back(filteredVoltages);
     timeData_.push_back(time);
 
-    // Update current and voltage min/max values
-    for (const auto& current : currents) {
-        currentMax_ = std::max(currentMax_, current);
-        currentMin_ = std::min(currentMin_, current);
+    // Update the min and max for currents and voltages with logging for large values
+    for (auto& current : currents) {
+        if (current > maxReasonableValue) {
+            wxLogError("Unusually high current detected: %f", current);
+        }
+        if (current > currentMax_) currentMax_ = current;
+        if (current < currentMin_) currentMin_ = current;
     }
-    for (const auto& voltage : voltages) {
-        voltageMax_ = std::max(voltageMax_, voltage);
-        voltageMin_ = std::min(voltageMin_, voltage);
+
+    for (auto& voltage : voltages) {
+        if (voltage > maxReasonableValue || voltage < minReasonableValue) {
+            wxLogError("Unusually high or low voltage detected: %f", voltage);
+        }
+        if (voltage > voltageMax_) voltageMax_ = voltage;
+        if (voltage < voltageMin_) voltageMin_ = voltage;
     }
 
     const int maxVisiblePoints = 50;
@@ -43,6 +64,7 @@ void GraphPlotting::AddDataPoint(const std::vector<float>& currents, const std::
     RefreshGraph();
 }
 
+
 void GraphPlotting::render(wxDC& dc) {
     dc.Clear();  // Clear the canvas before drawing
 
@@ -51,15 +73,23 @@ void GraphPlotting::render(wxDC& dc) {
 
     if (currentData_.empty() && voltageData_.empty()) return;
 
-    // Calculate scaling factors
-    float yScaleCurrent = (height - 50) / (currentMax_ - currentMin_);
-    float yScaleVoltage = (height - 50) / (voltageMax_ - voltageMin_);
+    // Dynamic range based on actual data
+    const float maxRangeCap = 100;  // Cap the maximum range to avoid excessive scaling
+    float currentRange = std::min(maxRangeCap, (currentMax_ - currentMin_) == 0 ? 1 : (currentMax_ - currentMin_));
+    float voltageRange = std::min(maxRangeCap, (voltageMax_ - voltageMin_) == 0 ? 1 : (voltageMax_ - voltageMin_));
+
+    float yScaleCurrent = (height - 50) / currentRange;
+    float yScaleVoltage = (height - 50) / voltageRange;
     float xStep = static_cast<float>(width - 100) / (timeData_.size() - 1);
 
     // Draw grids and labels
     drawGridLines(dc, width, height);
-    drawYAxisLabels(dc, width, height, true, yScaleCurrent, currentMin_, "A");
-    drawYAxisLabels(dc, width, height, false, yScaleVoltage, voltageMin_, "V");
+    drawYAxisLabels(dc, width, height, true, currentMax_, currentMin_, "A");  // Use dynamic current range
+    drawYAxisLabels(dc, width, height, false, voltageMax_, voltageMin_, "V"); // Use dynamic voltage range
+
+    // Your existing drawing logic for currents and voltages
+
+
 
     // Define colors for TECs
     std::vector<wxColour> colors = {
@@ -98,6 +128,10 @@ void GraphPlotting::render(wxDC& dc) {
     drawAxesLabels(dc, width, height);
     drawLegend(dc, width);
 }
+
+
+
+
 
 
 void GraphPlotting::drawGridLines(wxDC& dc, int width, int height) {
@@ -164,15 +198,20 @@ void GraphPlotting::drawAxesLabels(wxDC& dc, int width, int height) {
     dc.DrawText("Time (hh:mm:ss)", wxPoint(width / 2 - 50, height + 20));  // X-axis label
 }
 
-void GraphPlotting::drawYAxisLabels(wxDC& dc, int width, int height, bool leftAxis, float yScale, float minValue, const wxString& unit) {
+void GraphPlotting::drawYAxisLabels(wxDC& dc, int width, int height, bool leftAxis, float maxValue, float minValue, const wxString& unit) {
     int xPos = leftAxis ? 50 : width - 50;  // Position on the left or right of the panel
+    const float maxDisplayValue = 1000;  // Set a cap for max value displayed on Y-axis
+    float displayMaxValue = std::min(maxDisplayValue, maxValue);
+
     for (int i = 0; i <= 10; i++) {
-        float value = minValue + i * (yScale - minValue) / 10;
+        float value = minValue + i * (displayMaxValue - minValue) / 10;
+
         wxString label = wxString::Format("%.2f %s", value, unit);
         int yPos = height - 50 - (i * (height - 100) / 10);
         dc.DrawText(label, xPos, yPos);
     }
 }
+
 
 void GraphPlotting::paintEvent(wxPaintEvent& evt) {
     wxAutoBufferedPaintDC dc(this);  // Use buffered DC to avoid flickering

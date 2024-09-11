@@ -25,7 +25,7 @@ private:
     void drawLegend(wxDC& dc, int width);
     void drawGridLines(wxDC& dc, int width, int height);
     void OnResize(wxSizeEvent& event);
-    void drawYAxisLabels(wxDC& dc, int width, int height, bool leftAxis, float yScale, float minValue, const wxString& unit);
+    void drawYAxisLabels(wxDC& dc, int width, int height, bool leftAxis, float maxValue, float minValue, const wxString& unit);
 
     DECLARE_EVENT_TABLE();
 };
