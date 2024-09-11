@@ -50,7 +50,7 @@ const vector<LaserStateLogCategoryEnum> LASER_STATE_LOG_CATEGORIES_VISIBLE_TO_US
 LoggingPage::LoggingPage(shared_ptr<MainLaserControllerInterface> _lc, wxWindow* parent) :
 	SettingsPage_Base(_lc, parent) {
 
-	
+
 
 	logger = make_shared<CustomLogger>(lc);
 	CustomLogDebugOutput* logDebugOutput = new CustomLogDebugOutput();

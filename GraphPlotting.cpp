@@ -22,7 +22,11 @@ void GraphPlotting::AddDataPoint(const std::vector<float>& currents, const std::
     const float maxReasonableValue = 1000;  // Adjust this threshold based on realistic max value
     const float minReasonableValue = -1000;
 
-    auto isValid = [](float value) { return value > minReasonableValue && value < maxReasonableValue; };
+    auto isValid = [minReasonableValue, maxReasonableValue](float value) {
+        return value > minReasonableValue && value < maxReasonableValue;
+        };
+
+
 
     std::vector<float> filteredCurrents, filteredVoltages;
 
