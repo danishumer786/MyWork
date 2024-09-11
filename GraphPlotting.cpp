@@ -63,7 +63,64 @@ void GraphPlotting::AddDataPoint(const std::vector<float>& currents, const std::
 
     RefreshGraph();
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+     //Add Method to Handle Only Currents Category:
+void GraphPlotting::AddCurrentDataPoint(const std::vector<float>& currents, const wxString& time) {
+    const float maxReasonableValue = 1000;  // Adjust this threshold based on realistic max value
 
+    auto isValid = [](float value) { return value > -1000 && value < 1000; };
+
+    std::vector<float> filteredCurrents;
+    std::copy_if(currents.begin(), currents.end(), std::back_inserter(filteredCurrents), isValid);
+
+    // Add filtered current data
+    currentData_.push_back(filteredCurrents);
+    timeData_.push_back(time);
+
+    // Update min/max for currents
+    for (auto& current : currents) {
+        if (current > currentMax_) currentMax_ = current;
+        if (current < currentMin_) currentMin_ = current;
+    }
+
+    const int maxVisiblePoints = 50;
+    if (timeData_.size() > maxVisiblePoints) {
+        timeData_.erase(timeData_.begin());
+        currentData_.erase(currentData_.begin());
+    }
+
+    RefreshGraph();
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Add Method to Handle Only Voltages
+void GraphPlotting::AddVoltageDataPoint(const std::vector<float>& voltages, const wxString& time) {
+    const float maxReasonableValue = 1000;  // Adjust this threshold based on realistic max value
+
+    auto isValid = [](float value) { return value > -1000 && value < 1000; };
+
+    std::vector<float> filteredVoltages;
+    std::copy_if(voltages.begin(), voltages.end(), std::back_inserter(filteredVoltages), isValid);
+
+    // Add filtered voltage data
+    voltageData_.push_back(filteredVoltages);
+    timeData_.push_back(time);
+
+    // Update min/max for voltages
+    for (auto& voltage : voltages) {
+        if (voltage > voltageMax_) voltageMax_ = voltage;
+        if (voltage < voltageMin_) voltageMin_ = voltage;
+    }
+
+    const int maxVisiblePoints = 50;
+    if (timeData_.size() > maxVisiblePoints) {
+        timeData_.erase(timeData_.begin());
+        voltageData_.erase(voltageData_.begin());
+    }
+
+    RefreshGraph();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void GraphPlotting::render(wxDC& dc) {
     dc.Clear();  // Clear the canvas before drawing
@@ -102,27 +159,36 @@ void GraphPlotting::render(wxDC& dc) {
     };
 
     // Plot current and voltage values for each TEC
-    for (size_t tec = 0; tec < currentData_.front().size(); ++tec) {
-        // Plot current values
-        dc.SetPen(wxPen(colors[tec * 2 % colors.size()], 2));  // Correct indexing for current
-        for (size_t i = 1; i < currentData_.size(); ++i) {
-            int x1 = static_cast<int>((i - 1) * xStep + 50);
-            int y1 = height - 50 - static_cast<int>((currentData_[i - 1][tec] - currentMin_) * yScaleCurrent);
-            int x2 = static_cast<int>(i * xStep + 50);
-            int y2 = height - 50 - static_cast<int>((currentData_[i][tec] - currentMin_) * yScaleCurrent);
-            dc.DrawLine(x1, y1, x2, y2);
-        }
 
-        // Plot voltage values
-        dc.SetPen(wxPen(colors[tec * 2 + 1 % colors.size()], 2));  // Correct indexing for voltage
-        for (size_t i = 1; i < voltageData_.size(); ++i) {
-            int x1 = static_cast<int>((i - 1) * xStep + 50);
-            int y1 = height - 50 - static_cast<int>((voltageData_[i - 1][tec] - voltageMin_) * yScaleVoltage);
-            int x2 = static_cast<int>(i * xStep + 50);
-            int y2 = height - 50 - static_cast<int>((voltageData_[i][tec] - voltageMin_) * yScaleVoltage);
-            dc.DrawLine(x1, y1, x2, y2);
+// Check if currentData_ is empty before accessing it
+    if (!currentData_.empty()) {
+        for (size_t tec = 0; tec < currentData_.front().size(); ++tec) {
+            // Plot current values
+            dc.SetPen(wxPen(colors[tec * 2 % colors.size()], 2));  // Correct indexing for current
+            for (size_t i = 1; i < currentData_.size(); ++i) {
+                int x1 = static_cast<int>((i - 1) * xStep + 50);
+                int y1 = height - 50 - static_cast<int>((currentData_[i - 1][tec] - currentMin_) * yScaleCurrent);
+                int x2 = static_cast<int>(i * xStep + 50);
+                int y2 = height - 50 - static_cast<int>((currentData_[i][tec] - currentMin_) * yScaleCurrent);
+                dc.DrawLine(x1, y1, x2, y2);
+            }
         }
     }
+
+    // Plot voltage values
+    if (!voltageData_.empty()) {  // Ensure voltageData_ is not empty before plotting
+        for (size_t tec = 0; tec < voltageData_.front().size(); ++tec) {
+            dc.SetPen(wxPen(colors[tec * 2 + 1 % colors.size()], 2));  // Correct indexing for voltage
+            for (size_t i = 1; i < voltageData_.size(); ++i) {
+                int x1 = static_cast<int>((i - 1) * xStep + 50);
+                int y1 = height - 50 - static_cast<int>((voltageData_[i - 1][tec] - voltageMin_) * yScaleVoltage);
+                int x2 = static_cast<int>(i * xStep + 50);
+                int y2 = height - 50 - static_cast<int>((voltageData_[i][tec] - voltageMin_) * yScaleVoltage);
+                dc.DrawLine(x1, y1, x2, y2);
+            }
+        }
+    }
+
 
     // Draw axes labels and legend
     drawAxesLabels(dc, width, height);
@@ -176,20 +242,28 @@ void GraphPlotting::drawLegend(wxDC& dc, int width) {
     };
 
     // Plot legend for current values for each TEC
-    for (size_t tec = 0; tec < currentData_.front().size(); ++tec) {
-        // Current
-        dc.SetPen(wxPen(colors[tec * 2 % colors.size()], 2));  // Multiply index by 2 for current
-        dc.DrawLine(width - 100, legendYPosition, width - 80, legendYPosition);
-        dc.DrawText(wxString::Format("TEC %d Current", tec + 1), wxPoint(width - 75, legendYPosition - 5));
-        legendYPosition += 20;
+    if (!currentData_.empty()) {  // Check if current data exists
+        for (size_t tec = 0; tec < currentData_.front().size(); ++tec) {
+            // Current
+            dc.SetPen(wxPen(colors[tec * 2 % colors.size()], 2));  // Multiply index by 2 for current
+            dc.DrawLine(width - 100, legendYPosition, width - 80, legendYPosition);
+            dc.DrawText(wxString::Format("TEC %d Current", tec + 1), wxPoint(width - 75, legendYPosition - 5));
+            legendYPosition += 20;
+        }
+    }
 
-        // Voltage
-        dc.SetPen(wxPen(colors[(tec * 2 + 1) % colors.size()], 2));  // Offset by 1 for voltage
-        dc.DrawLine(width - 100, legendYPosition, width - 80, legendYPosition);
-        dc.DrawText(wxString::Format("TEC %d Voltage", tec + 1), wxPoint(width - 75, legendYPosition - 5));
-        legendYPosition += 20;
+    // Plot legend for voltage values for each TEC
+    if (!voltageData_.empty()) {  // Check if voltage data exists
+        for (size_t tec = 0; tec < voltageData_.front().size(); ++tec) {
+            // Voltage
+            dc.SetPen(wxPen(colors[tec * 2 + 1 % colors.size()], 2));  // Correct indexing for voltage
+            dc.DrawLine(width - 100, legendYPosition, width - 80, legendYPosition);
+            dc.DrawText(wxString::Format("TEC %d Voltage", tec + 1), wxPoint(width - 75, legendYPosition - 5));
+            legendYPosition += 20;
+        }
     }
 }
+
 
 void GraphPlotting::drawAxesLabels(wxDC& dc, int width, int height) {
     wxFont font(7, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);

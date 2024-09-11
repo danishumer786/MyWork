@@ -55,11 +55,19 @@ public:
             }
         }
 
-        // If either currents or voltages are found, pass them to GraphPlotting
-        if (currentDataFound || voltageDataFound) {
-            graphPlot_->AddDataPoint(currents, voltages, currentTime);  // Pass only the available data
+        // Decide which data to pass to the graphPlot_
+        if (currentDataFound && voltageDataFound) {
+            graphPlot_->AddDataPoint(currents, voltages, currentTime);  // Pass both currents and voltages
+        }
+        else if (currentDataFound) {
+            graphPlot_->AddCurrentDataPoint(currents, currentTime);  // Pass only currents
+        }
+        else if (voltageDataFound) {
+            graphPlot_->AddVoltageDataPoint(voltages, currentTime);  // Pass only voltages
         }
     }
+
+
 
 private:
     wxTextCtrl* textCtrl_;
