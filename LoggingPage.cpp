@@ -317,7 +317,6 @@ void LoggingPage::OnSelectLogOutputFileButtonClicked(wxCommandEvent& evt) {
 	LOG_ACTION()
 }
 
-
 void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 	STAGE_ACTION("Start logging button clicked")
 
@@ -337,12 +336,21 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			LogStatusMessage->Set(_("Logging"));
 
 			// Open a new window for graph
-			wxFrame* graphWindow = new wxFrame(this, wxID_ANY, _("Graph Window"), wxDefaultPosition, wxSize(500, 400));
+			wxFrame* graphWindow = new wxFrame(this, wxID_ANY, _("Graph Window"), wxDefaultPosition, wxSize(800, 600));
 
 			// Create a panel and a GraphPlotting object in the new window
 			wxPanel* panel = new wxPanel(graphWindow, wxID_ANY);
 			GraphPlotting* graphPlot = new GraphPlotting(panel, wxID_ANY, wxDefaultPosition, wxSize(500, 400));
 
+			// Add checkboxes for TEC selection
+			wxBoxSizer* checkboxSizer = new wxBoxSizer(wxHORIZONTAL);
+			std::vector<wxCheckBox*> checkboxes;
+			std::vector<std::string> tecNames = { "Seed", "SHG", "THG", "BEX", "DNS", "DU" };
+			for (const auto& name : tecNames) {
+				wxCheckBox* checkBox = new wxCheckBox(panel, wxID_ANY, name, wxDefaultPosition, wxDefaultSize);
+				checkboxes.push_back(checkBox);
+				checkboxSizer->Add(checkBox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+			}
 
 			// Initialize RealTimeObserver for the new window
 			RealTimeObserver* tempObserverForWindow = new RealTimeObserver(RealTimeTempLogTextCtrl, graphPlot);
@@ -350,6 +358,7 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 
 			// Add a sizer to the panel to manage the layout
 			wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+			sizer->Add(checkboxSizer, 0, wxEXPAND | wxALL, 5);  // Add the checkbox sizer to the main sizer
 			sizer->Add(graphPlot, 1, wxEXPAND | wxALL, 5);  // Add the GraphPlotting object to the sizer
 			panel->SetSizer(sizer);
 
@@ -360,6 +369,8 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 	RefreshControlsEnabled();
 	LOG_ACTION()
 }
+
+
 
 
 

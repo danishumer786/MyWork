@@ -29,7 +29,7 @@ void GraphPlotting::AddDataPoint(const std::vector<float>& currents, const std::
 
 
     std::vector<float> filteredCurrents, filteredVoltages;
-
+    
     // Filter currents
     std::copy_if(currents.begin(), currents.end(), std::back_inserter(filteredCurrents), isValid);
 
@@ -68,6 +68,8 @@ void GraphPlotting::AddDataPoint(const std::vector<float>& currents, const std::
     RefreshGraph();
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
      //Add Method to Handle Only Currents Category:
 void GraphPlotting::AddCurrentDataPoint(const std::vector<float>& currents, const wxString& time) {
     const float maxReasonableValue = 1000;  // Adjust this threshold based on realistic max value
@@ -125,6 +127,9 @@ void GraphPlotting::AddVoltageDataPoint(const std::vector<float>& voltages, cons
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
 
 void GraphPlotting::render(wxDC& dc) {
     dc.Clear();  // Clear the canvas before drawing
