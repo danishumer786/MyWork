@@ -342,12 +342,17 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			wxPanel* panel = new wxPanel(graphWindow, wxID_ANY);
 			GraphPlotting* graphPlot = new GraphPlotting(panel, wxID_ANY, wxDefaultPosition, wxSize(500, 400));
 
-			// Add checkboxes for TEC selection
+			// Fetch TEC IDs and create checkboxes
 			wxBoxSizer* checkboxSizer = new wxBoxSizer(wxHORIZONTAL);
 			std::vector<wxCheckBox*> checkboxes;
-			std::vector<std::string> tecNames = { "Seed", "SHG", "THG", "BEX", "DNS", "DU" };
-			for (const auto& name : tecNames) {
-				wxCheckBox* checkBox = new wxCheckBox(panel, wxID_ANY, name, wxDefaultPosition, wxDefaultSize);
+			vector<int> tecIDs = lc->GetTemperatureControlIDs();
+			for (int id : tecIDs) {
+				std::string label = lc->GetTemperatureControlLabel(id);
+				wxCheckBox* checkBox = new wxCheckBox(panel, wxID_ANY, label, wxDefaultPosition, wxDefaultSize);
+
+				// Automatically check the checkbox since TEC is providing data
+				checkBox->SetValue(true);  // This ensures the checkbox is checked by default for connected TECs
+
 				checkboxes.push_back(checkBox);
 				checkboxSizer->Add(checkBox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 			}
@@ -369,10 +374,6 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 	RefreshControlsEnabled();
 	LOG_ACTION()
 }
-
-
-
-
 
 void LoggingPage::OnResetButtonClicked(wxCommandEvent& evt) {
 	STAGE_ACTION("Reset log button clicked")
