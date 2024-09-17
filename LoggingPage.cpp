@@ -336,11 +336,13 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			LogStatusMessage->Set(_("Logging"));
 
 			// Open a new window for graph
-			wxFrame* graphWindow = new wxFrame(this, wxID_ANY, _("Graph Window"), wxDefaultPosition, wxSize(800, 600));
+			wxFrame* graphWindow = new wxFrame(this, wxID_ANY, _("Graph Window"), wxDefaultPosition, wxSize(1200, 600));
 
 			// Create a panel and a GraphPlotting object in the new window
 			wxPanel* panel = new wxPanel(graphWindow, wxID_ANY);
-			GraphPlotting* graphPlot = new GraphPlotting(panel, wxID_ANY, wxDefaultPosition, wxSize(500, 400));
+			GraphPlotting* graphPlot = new GraphPlotting(panel, wxID_ANY, wxDefaultPosition, wxSize(600, 300));
+
+			graphPlot->SetMinSize(wxSize(600, 300));
 
 			// Fetch TEC IDs and create checkboxes
 			wxBoxSizer* checkboxSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -364,7 +366,7 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			// Add a sizer to the panel to manage the layout
 			wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 			sizer->Add(checkboxSizer, 0, wxEXPAND | wxALL, 5);  // Add the checkbox sizer to the main sizer
-			sizer->Add(graphPlot, 1, wxEXPAND | wxALL, 5);  // Add the GraphPlotting object to the sizer
+			sizer->Add(graphPlot, 0, wxALL | wxALL, 5);  // Add the GraphPlotting object to the sizer
 			panel->SetSizer(sizer);
 
 			// Show the new window
