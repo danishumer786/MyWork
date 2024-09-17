@@ -29,6 +29,7 @@ private:
 	std::shared_ptr<CustomLogger> logger = nullptr;
 	LaserStateLogCategoryEnum category = NULL_CATEGORY;
 	string categoryName;
+	
 
 	void OnLogDataCategoryCheckboxChecked(wxCommandEvent& evt);
 
@@ -36,6 +37,7 @@ public:
 	LogCategoryCheckbox(shared_ptr<MainLaserControllerInterface> _lc, wxWindow* parent, shared_ptr<CustomLogger> _logger, LaserStateLogCategoryEnum _category);
 	void RefreshEnableStatus();
 	void RefreshStrings();
+	
 };
 
 
@@ -56,6 +58,7 @@ private:
 	std::shared_ptr<CustomLogger> logger;
 
 	std::vector<LogCategoryCheckbox*> categoryCheckboxes;
+	
 
 	wxTimer logTimer;
 
@@ -89,7 +92,7 @@ private:
 private:
 	wxTextCtrl* RealTimeTempLogTextCtrl;
 	RealTimeObserver* tempObserver;
-
+	std::map<std::string, wxCheckBox*> tecCheckboxes;
 
 
 

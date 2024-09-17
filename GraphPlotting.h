@@ -15,7 +15,7 @@ public:
     // New methods for adding only currents or only voltages
     void AddCurrentDataPoint(const std::vector<float>& currents, const wxString& time);
     void AddVoltageDataPoint(const std::vector<float>& voltages, const wxString& time);
-    
+
 
 
     void RefreshGraph();
@@ -24,7 +24,7 @@ private:
     std::deque<std::vector<float>> currentData_;
     std::deque<std::vector<float>> voltageData_;
     std::deque<wxString> timeData_;
-   
+
 
     // Members to track the maximum and minimum values for scaling
     float currentMax_, currentMin_, voltageMax_, voltageMin_;

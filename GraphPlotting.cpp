@@ -29,7 +29,7 @@ void GraphPlotting::AddDataPoint(const std::vector<float>& currents, const std::
 
 
     std::vector<float> filteredCurrents, filteredVoltages;
-    
+
     // Filter currents
     std::copy_if(currents.begin(), currents.end(), std::back_inserter(filteredCurrents), isValid);
 
@@ -155,8 +155,6 @@ void GraphPlotting::render(wxDC& dc) {
 
     // Your existing drawing logic for currents and voltages
 
-
-
     // Define colors for TECs
     std::vector<wxColour> colors = {
         wxColour(255, 0, 0),    // Red for TEC 1 Current
@@ -169,40 +167,53 @@ void GraphPlotting::render(wxDC& dc) {
 
     // Plot current and voltage values for each TEC
 
-// Check if currentData_ is empty before accessing it
+    // Ensure we have valid data before accessing it
     if (!currentData_.empty()) {
-        for (size_t tec = 0; tec < currentData_.front().size(); ++tec) {
-            // Plot current values
-            dc.SetPen(wxPen(colors[tec * 2 % colors.size()], 2));  // Correct indexing for current
-            for (size_t i = 1; i < currentData_.size(); ++i) {
-                int x1 = static_cast<int>((i - 1) * xStep + 50);
-                int y1 = height - 50 - static_cast<int>((currentData_[i - 1][tec] - currentMin_) * yScaleCurrent);
-                int x2 = static_cast<int>(i * xStep + 50);
-                int y2 = height - 50 - static_cast<int>((currentData_[i][tec] - currentMin_) * yScaleCurrent);
-                dc.DrawLine(x1, y1, x2, y2);
+        size_t tecCount = currentData_.front().size();  // Number of TECs
+
+        for (size_t tec = 0; tec < tecCount; ++tec) {
+            // Plot current values if available for this TEC
+            if (tec < currentData_.front().size()) {  // Ensure the TEC data exists
+                dc.SetPen(wxPen(colors[tec * 2 % colors.size()], 2));  // Correct indexing for current
+                for (size_t i = 1; i < currentData_.size(); ++i) {
+                    if (tec < currentData_[i - 1].size() && tec < currentData_[i].size()) {  // Check the size for safety
+                        int x1 = static_cast<int>((i - 1) * xStep + 50);
+                        int y1 = height - 50 - static_cast<int>((currentData_[i - 1][tec] - currentMin_) * yScaleCurrent);
+                        int x2 = static_cast<int>(i * xStep + 50);
+                        int y2 = height - 50 - static_cast<int>((currentData_[i][tec] - currentMin_) * yScaleCurrent);
+                        
+                    }
+                }
             }
         }
     }
 
-    // Plot voltage values
-    if (!voltageData_.empty()) {  // Ensure voltageData_ is not empty before plotting
-        for (size_t tec = 0; tec < voltageData_.front().size(); ++tec) {
-            dc.SetPen(wxPen(colors[tec * 2 + 1 % colors.size()], 2));  // Correct indexing for voltage
-            for (size_t i = 1; i < voltageData_.size(); ++i) {
-                int x1 = static_cast<int>((i - 1) * xStep + 50);
-                int y1 = height - 50 - static_cast<int>((voltageData_[i - 1][tec] - voltageMin_) * yScaleVoltage);
-                int x2 = static_cast<int>(i * xStep + 50);
-                int y2 = height - 50 - static_cast<int>((voltageData_[i][tec] - voltageMin_) * yScaleVoltage);
-                dc.DrawLine(x1, y1, x2, y2);
+    // Plot voltage values similarly
+    if (!voltageData_.empty()) {
+        size_t tecCount = voltageData_.front().size();  // Number of TECs
+
+        for (size_t tec = 0; tec < tecCount; ++tec) {
+            // Plot voltage values if available for this TEC
+            if (tec < voltageData_.front().size()) {
+                dc.SetPen(wxPen(colors[tec * 2 + 1 % colors.size()], 2));  // Correct indexing for voltage
+                for (size_t i = 1; i < voltageData_.size(); ++i) {
+                    if (tec < voltageData_[i - 1].size() && tec < voltageData_[i].size()) {  // Check the size for safety
+                        int x1 = static_cast<int>((i - 1) * xStep + 50);
+                        int y1 = height - 50 - static_cast<int>((voltageData_[i - 1][tec] - voltageMin_) * yScaleVoltage);
+                        int x2 = static_cast<int>(i * xStep + 50);
+                        int y2 = height - 50 - static_cast<int>((voltageData_[i][tec] - voltageMin_) * yScaleVoltage);
+                        dc.DrawLine(x1, y1, x2, y2);
+                    }
+                }
             }
         }
     }
-
 
     // Draw axes labels and legend
     drawAxesLabels(dc, width, height);
     drawLegend(dc, width);
 }
+
 
 
 

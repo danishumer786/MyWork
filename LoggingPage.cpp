@@ -200,9 +200,9 @@ LoggingPage::LoggingPage(shared_ptr<MainLaserControllerInterface> _lc, wxWindow*
 	// Ensure layout is updated
 	LogControlsSizer->Layout();
 
-	// Initialize RealTimeObserver with the wxTextCtrl and the plot canvas
+	/*// Initialize RealTimeObserver with the wxTextCtrl and the plot canvas
 	RealTimeObserver* tempObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, graphPlotting);
-	logger->addObserver(tempObserver);
+	logger->addObserver(tempObserver);*/
 
 
 	// Bind the timer event
@@ -338,10 +338,11 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			// Open a new window for graph
 			wxFrame* graphWindow = new wxFrame(this, wxID_ANY, _("Graph Window"), wxDefaultPosition, wxSize(1200, 600));
 
-			// Create a panel and a GraphPlotting object in the new window
+			// Create a panel in the new window
 			wxPanel* panel = new wxPanel(graphWindow, wxID_ANY);
-			GraphPlotting* graphPlot = new GraphPlotting(panel, wxID_ANY, wxDefaultPosition, wxSize(600, 300));
 
+			// Create a GraphPlotting object with a defined size
+			GraphPlotting* graphPlot = new GraphPlotting(panel, wxID_ANY, wxDefaultPosition, wxSize(600, 300));
 			graphPlot->SetMinSize(wxSize(600, 300));
 
 			// Fetch TEC IDs and create checkboxes
@@ -352,22 +353,42 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 				std::string label = lc->GetTemperatureControlLabel(id);
 				wxCheckBox* checkBox = new wxCheckBox(panel, wxID_ANY, label, wxDefaultPosition, wxDefaultSize);
 
-				// Automatically check the checkbox since TEC is providing data
-				checkBox->SetValue(true);  // This ensures the checkbox is checked by default for connected TECs
+				checkBox->SetValue(true);  // Automatically check the checkbox for connected TECs
 
-				checkboxes.push_back(checkBox);
+				// Store the checkbox in the map using the label as the key
+				tecCheckboxes[label] = checkBox;
+
+				// Bind an event handler for checkbox clicks
+				checkBox->Bind(wxEVT_CHECKBOX, [label, this](wxCommandEvent& evt) {
+					//wxLogMessage("TEC %s checkbox toggled: %s", label, evt.IsChecked() ? "Checked" : "Unchecked");
+					// Here you can also trigger a refresh of the graph if needed
+					});
+
 				checkboxSizer->Add(checkBox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 			}
 
-			// Initialize RealTimeObserver for the new window
-			RealTimeObserver* tempObserverForWindow = new RealTimeObserver(RealTimeTempLogTextCtrl, graphPlot);
+			// Initialize RealTimeObserver for the new window and pass the checkbox map
+			RealTimeObserver* tempObserverForWindow = new RealTimeObserver(RealTimeTempLogTextCtrl, graphPlot, tecCheckboxes);
 			logger->addObserver(tempObserverForWindow);
 
-			// Add a sizer to the panel to manage the layout
-			wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-			sizer->Add(checkboxSizer, 0, wxEXPAND | wxALL, 5);  // Add the checkbox sizer to the main sizer
-			sizer->Add(graphPlot, 0, wxALL | wxALL, 5);  // Add the GraphPlotting object to the sizer
-			panel->SetSizer(sizer);
+			// Create a sizer for the graph and checkboxes
+			wxBoxSizer* leftSizer = new wxBoxSizer(wxVERTICAL);
+			leftSizer->Add(checkboxSizer, 0, wxEXPAND | wxALL, 5);  // Add the checkboxes
+			leftSizer->Add(graphPlot, 0, wxALL | wxALL, 5);  // Add the GraphPlotting object
+
+			// Create a right-side panel for additional functionality (currently empty)
+			wxPanel* rightPanel = new wxPanel(panel, wxID_ANY);
+			wxBoxSizer* rightSizer = new wxBoxSizer(wxVERTICAL);
+			// Add more functionality here, e.g., buttons, text fields, etc.
+			rightPanel->SetSizer(rightSizer);
+
+			// Create a horizontal sizer to split the window
+			wxBoxSizer* mainSizer = new wxBoxSizer(wxHORIZONTAL);
+			mainSizer->Add(leftSizer, 1, wxEXPAND | wxALL, 5);  // The left section takes 70% of the space
+			mainSizer->Add(rightPanel, 0, wxEXPAND | wxALL, 5);  // The right section for future functionality (30% space)
+
+			// Set the sizer for the main panel
+			panel->SetSizer(mainSizer);
 
 			// Show the new window
 			graphWindow->Show();
@@ -376,6 +397,7 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 	RefreshControlsEnabled();
 	LOG_ACTION()
 }
+
 
 void LoggingPage::OnResetButtonClicked(wxCommandEvent& evt) {
 	STAGE_ACTION("Reset log button clicked")
