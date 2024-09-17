@@ -24,8 +24,6 @@ public:
             std::string logEntry = entry.first + ": " + entry.second + "\n";
             textCtrl_->AppendText(logEntry);  // Log the received data
 
-           // wxLogMessage("Received data - Key: %s, Value: %s", entry.first, entry.second);
-
             try {
                 // Check if the entry is a current or voltage
                 if (entry.first.find("TecCurrent-") != std::string::npos || entry.first.find("TecVoltage-") != std::string::npos) {
@@ -46,7 +44,7 @@ public:
                     }
                     else {
                         // If it's unchecked, skip processing for this TEC
-                        //wxLogMessage("TEC %s is unchecked, skipping data.", label);
+                       // wxLogMessage("TEC %s is unchecked, skipping data.", label);
                     }
                 }
             }
@@ -55,17 +53,18 @@ public:
             }
         }
 
-        // Decide which data to pass to the graphPlot_
+        // Pass filtered data to the graphPlot_ based on checked TECs
         if (currentDataFound && voltageDataFound) {
-            graphPlot_->AddDataPoint(currents, voltages, currentTime);  // Pass both currents and voltages
+            graphPlot_->AddDataPoint(currents, voltages, currentTime);
         }
         else if (currentDataFound) {
-            graphPlot_->AddCurrentDataPoint(currents, currentTime);  // Pass only currents
+            graphPlot_->AddCurrentDataPoint(currents, currentTime);
         }
         else if (voltageDataFound) {
-            graphPlot_->AddVoltageDataPoint(voltages, currentTime);  // Pass only voltages
+            graphPlot_->AddVoltageDataPoint(voltages, currentTime);
         }
     }
+
 
 
 

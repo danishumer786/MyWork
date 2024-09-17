@@ -181,7 +181,7 @@ void GraphPlotting::render(wxDC& dc) {
                         int y1 = height - 50 - static_cast<int>((currentData_[i - 1][tec] - currentMin_) * yScaleCurrent);
                         int x2 = static_cast<int>(i * xStep + 50);
                         int y2 = height - 50 - static_cast<int>((currentData_[i][tec] - currentMin_) * yScaleCurrent);
-                        
+                        dc.DrawLine(x1, y1, x2, y2);
                     }
                 }
             }
@@ -213,10 +213,6 @@ void GraphPlotting::render(wxDC& dc) {
     drawAxesLabels(dc, width, height);
     drawLegend(dc, width);
 }
-
-
-
-
 
 
 
