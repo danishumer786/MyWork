@@ -185,7 +185,7 @@ LoggingPage::LoggingPage(shared_ptr<MainLaserControllerInterface> _lc, wxWindow*
 	wxBoxSizer* plotSizer = new wxBoxSizer(wxVERTICAL);
 
 	// Initialize the plot canvas
-	GraphPlotting* graphPlotting = new GraphPlotting(LogControlsPanel, wxID_ANY, wxDefaultPosition, wxSize(400, 200));
+	GraphPlotting* graphPlotting = new GraphPlotting(LogControlsPanel, wxID_ANY, wxDefaultPosition, wxSize(400, 200), tecCheckboxes);
 
 
 	// Add the plot canvas to the plot sizer
@@ -200,9 +200,9 @@ LoggingPage::LoggingPage(shared_ptr<MainLaserControllerInterface> _lc, wxWindow*
 	// Ensure layout is updated
 	LogControlsSizer->Layout();
 
-	/*// Initialize RealTimeObserver with the wxTextCtrl and the plot canvas
+	// Initialize RealTimeObserver with the wxTextCtrl and the plot canvas
 	RealTimeObserver* tempObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, graphPlotting);
-	logger->addObserver(tempObserver);*/
+	logger->addObserver(tempObserver);
 
 
 	// Bind the timer event
@@ -335,34 +335,49 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			LogStatusMessage->StartCycling();
 			LogStatusMessage->Set(_("Logging"));
 
-			// Open a new window for graph
+			// Open a new window for the graph
 			wxFrame* graphWindow = new wxFrame(this, wxID_ANY, _("Graph Window"), wxDefaultPosition, wxSize(1200, 600));
 
 			// Create a panel and a GraphPlotting object in the new window
 			wxPanel* panel = new wxPanel(graphWindow, wxID_ANY);
-			GraphPlotting* graphPlot = new GraphPlotting(panel, wxID_ANY, wxDefaultPosition, wxSize(600, 300));
+			//std::map<std::string, wxCheckBox*> tecCheckboxes;  // Initialize TEC checkboxes map
+			GraphPlotting* graphPlot = new GraphPlotting(panel, wxID_ANY, wxDefaultPosition, wxSize(1000, 500), tecCheckboxes); // Pass tecCheckboxes map
 			graphPlot->SetMinSize(wxSize(600, 300));
 
 			// Fetch TEC IDs and create checkboxes
 			wxBoxSizer* checkboxSizer = new wxBoxSizer(wxHORIZONTAL);
 			std::vector<wxCheckBox*> checkboxes;
-			std::map<std::string, wxCheckBox*> tecCheckboxes;  // Map to store TEC labels and checkboxes
+			//std::map<std::string, wxCheckBox*> tecCheckboxes;  // Map to store TEC labels and checkboxes
 
 			vector<int> tecIDs = lc->GetTemperatureControlIDs();
 			for (int id : tecIDs) {
 				std::string label = lc->GetTemperatureControlLabel(id);
 				wxCheckBox* checkBox = new wxCheckBox(panel, wxID_ANY, label, wxDefaultPosition, wxDefaultSize);
 
-				checkBox->SetValue(true);  // Automatically check the checkbox for connected TECs
+				checkBox->SetValue(true);  
 
-				// Store the checkbox in the map using the label as the key
+				
+
+				// Bind an event to log when the checkbox is unchecked
+				checkBox->Bind(wxEVT_CHECKBOX, [=](wxCommandEvent& event) {
+					if (!checkBox->IsChecked()) {
+						//wxLogMessage("TEC %s is unchecked.", label);
+						
+
+					}
+					else {
+						//wxLogMessage("TEC %s is checked.", label);
+					}
+					graphPlot->RefreshGraph();  
+					});
+				
 				tecCheckboxes[label] = checkBox;
 
 				checkboxSizer->Add(checkBox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 			}
 
 			// Initialize RealTimeObserver for the new window and pass the checkbox map
-			RealTimeObserver* tempObserverForWindow = new RealTimeObserver(RealTimeTempLogTextCtrl, graphPlot, tecCheckboxes);
+			RealTimeObserver* tempObserverForWindow = new RealTimeObserver(RealTimeTempLogTextCtrl, graphPlot);
 			logger->addObserver(tempObserverForWindow);
 
 			// Add a sizer to the panel to manage the layout
@@ -378,6 +393,7 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 	RefreshControlsEnabled();
 	LOG_ACTION()
 }
+
 
 
 
