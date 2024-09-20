@@ -4,39 +4,58 @@
 #include <vector>
 #include <deque>
 #include <set>
+#include <map>  // For std::map
 
 class GraphPlotting : public wxPanel {
 public:
-    GraphPlotting(wxWindow* parent, wxWindowID winid, const wxPoint& pos, const wxSize& size);
+    // Constructor that accepts the checkboxes vector
+    GraphPlotting(wxWindow* parent, wxWindowID winid, const wxPoint& pos, const wxSize& size, const std::vector<wxCheckBox*>& checkboxes);
 
-    // Original method for adding both currents and voltages
-    void AddDataPoint(const std::vector<float>& currents, const std::vector<float>& voltages, const wxString& time);
+    // Original method for adding both currents and voltages, with labels
+    void AddDataPoint(const std::vector<float>& currents,
+        const std::vector<float>& voltages,
+        const std::vector<std::string>& currentLabels,
+        const std::vector<std::string>& voltageLabels,
+        const wxString& time);
 
-    // New methods for adding only currents or only voltages
-    void AddCurrentDataPoint(const std::vector<float>& currents, const wxString& time);
-    void AddVoltageDataPoint(const std::vector<float>& voltages, const wxString& time);
+    // New methods for adding only currents or only voltages, with labels
+    void AddCurrentDataPoint(const std::vector<float>& currents,
+        const std::vector<std::string>& currentLabels,
+        const wxString& time);
 
+    void AddVoltageDataPoint(const std::vector<float>& voltages,
+        const std::vector<std::string>& voltageLabels,
+        const wxString& time);
 
-
+    // Refresh the graph to reflect the updated data
     void RefreshGraph();
 
 private:
+    // Data storage for the graph
     std::deque<std::vector<float>> currentData_;
     std::deque<std::vector<float>> voltageData_;
+    std::vector<std::string> currentLabels_;
+    std::vector<std::string> voltageLabels_;
+
     std::deque<wxString> timeData_;
 
-
+    // Vector to store the checkboxes for each TEC
+    std::vector<wxCheckBox*> checkboxes_;  // Corrected type: vector of checkboxes
+    
     // Members to track the maximum and minimum values for scaling
-    float currentMax_, currentMin_, voltageMax_, voltageMin_;
+    float currentMax_ = std::numeric_limits<float>::lowest();
+    float currentMin_ = std::numeric_limits<float>::max();
+    float voltageMax_ = std::numeric_limits<float>::lowest();
+    float voltageMin_ = std::numeric_limits<float>::max();
 
     // Event handling and rendering
     void paintEvent(wxPaintEvent& evt);
     void render(wxDC& dc);
 
     // Methods for drawing different components of the graph
-    void drawAxesLabels(wxDC& dc, int width, int height);
-    void drawLegend(wxDC& dc, int width);
-    void drawGridLines(wxDC& dc, int width, int height);
+    // void drawAxesLabels(wxDC& dc, int width, int height);
+    // void drawLegend(wxDC& dc, int width);
+    // void drawGridLines(wxDC& dc, int width, int height);
     void OnResize(wxSizeEvent& event);
 
     // Method for drawing Y-axis labels
