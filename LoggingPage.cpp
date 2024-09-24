@@ -1,9 +1,8 @@
 #include "CustomLogDebugOutput.h"
-#include "..\LaserGUI\GraphWindow.h"
 #include "..\LaserGUI\GraphPlotting.h"
 #include "LoggingPage.h"
 #include "../CommonFunctions_GUI.h"
-
+#include "../LaserGUI/GraphingWork.h" 
 
 using namespace std;
 
@@ -317,10 +316,13 @@ void LoggingPage::OnSelectLogOutputFileButtonClicked(wxCommandEvent& evt) {
 	LOG_ACTION()
 }
 
+
+
 void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 	STAGE_ACTION("Start logging button clicked")
 
 		if (logger->IsLogging()) {
+			// Stop logging if already in progress
 			STAGE_ACTION_ARGUMENTS("Stop")
 				logger->Stop();
 			logTimer.Stop();
@@ -328,6 +330,7 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			LogStatusMessage->Set(_("Paused"));
 		}
 		else {
+			// Start logging
 			STAGE_ACTION_ARGUMENTS("Start")
 				logger->SetTimeIntervalInSeconds(stoi(string(TimeIntervalTextCtrl->GetValue())));
 			logger->Start();
@@ -335,57 +338,82 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			LogStatusMessage->StartCycling();
 			LogStatusMessage->Set(_("Logging"));
 
+			// Create a new graph window
 			wxFrame* graphWindow = new wxFrame(this, wxID_ANY, _("Graph Window"), wxDefaultPosition, wxSize(1200, 600));
 			wxPanel* panel = new wxPanel(graphWindow, wxID_ANY);
+
 			std::vector<wxCheckBox*> checkboxes;
+
+
+			// Now create checkboxes for the TECs and bind them to their respective plots
 			wxBoxSizer* checkboxSizer = new wxBoxSizer(wxHORIZONTAL);
 			vector<int> tecIDs = lc->GetTemperatureControlIDs();
-			//wxLogMessage("Number of TEC IDs: %d", tecIDs.size());
-			// Initialize the GraphPlotting object here
+			GraphPlotting* currentPlot = nullptr;
+			GraphPlotting* voltagePlot = nullptr;
+			GraphPlotting* tempPlot = nullptr;
 
-
-			// Create a pointer for graphPlot but don't initialize it yet
-			GraphPlotting* graphPlot = nullptr;  // Declare it before the loop
 
 			for (int id : tecIDs) {
 				std::string label = lc->GetTemperatureControlLabel(id);
+
+				
 				wxCheckBox* checkBox = new wxCheckBox(panel, wxID_ANY, label, wxDefaultPosition, wxDefaultSize);
 
-				// Log the creation of each checkbox
-				//wxLogMessage("Creating checkbox for TEC: %s", label);
-
-				// Capture `graphPlot` by reference in the lambda to ensure it works after initialization
-				checkBox->Bind(wxEVT_CHECKBOX, [&, graphPlot](wxCommandEvent& event) {
-					if (graphPlot) {  // Only call RefreshGraph if graphPlot is initialized
-						graphPlot->RefreshGraph();  // Use graphPlot correctly after it's defined
+				checkBox->Bind(wxEVT_CHECKBOX, [&, currentPlot,voltagePlot,tempPlot](wxCommandEvent& event) {
+					if (currentPlot) { 
+						currentPlot->RefreshGraph(); 
 					}
-					});
+					else if (voltagePlot) {  
+						voltagePlot->RefreshGraph();  
+					}
+					else if (tempPlot) {  
+						tempPlot->RefreshGraph();  
+					}
 
-				checkboxes.push_back(checkBox);
+					});
+				
+				checkboxes_.push_back(checkBox);
 				checkboxSizer->Add(checkBox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 			}
 
-			// Now initialize graphPlot after the checkboxes are created
-			graphPlot = new GraphPlotting(panel, wxID_ANY, wxDefaultPosition, wxSize(1000, 500), checkboxes);
-			graphPlot->SetMinSize(wxSize(600, 300));
-			//wxLogMessage("Number of checkboxes created: %d", checkboxes.size());
+			 currentPlot = new GraphPlotting(panel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), checkboxes_);
+			currentPlot->SetMinSize(wxSize(600, 150));
 
-			// Continue with observer and layout setup
-			RealTimeObserver* tempObserverForWindow = new RealTimeObserver(RealTimeTempLogTextCtrl, graphPlot);
+			 voltagePlot = new GraphPlotting(panel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), checkboxes_);
+			voltagePlot->SetMinSize(wxSize(600, 150));
+
+			 tempPlot = new GraphPlotting(panel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), checkboxes_);
+			tempPlot->SetMinSize(wxSize(600, 150));
+
+			
+			RealTimeObserver* tempObserverForWindow = new RealTimeObserver(RealTimeTempLogTextCtrl, currentPlot, voltagePlot, tempPlot);
 			logger->addObserver(tempObserverForWindow);
 
-			// Set up layout
-			wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-			sizer->Add(checkboxSizer, 0, wxEXPAND | wxALL, 5);
-			sizer->Add(graphPlot, 1, wxEXPAND | wxALL, 5);
-			panel->SetSizer(sizer);
+
+
+			wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
+			// Add the checkboxSizer to the main sizer
+			mainSizer->Add(checkboxSizer, 0, wxEXPAND | wxALL, 5);
+			mainSizer->Add(currentPlot, 1, wxEXPAND | wxALL, 5);
+			mainSizer->Add(voltagePlot, 1, wxEXPAND | wxALL, 5);
+			mainSizer->Add(tempPlot, 1, wxEXPAND | wxALL, 5);
+
+			panel->SetSizer(mainSizer);
+
+		
 			graphWindow->Show();
 
-
+		
 			RefreshControlsEnabled();
 			LOG_ACTION()
 		}
 }
+
+/*
+			// Create the graphing window using the new class
+			GraphingWork graphingWork(this, logger, RealTimeTempLogTextCtrl, lc);
+			graphingWork.CreateGraphWindow();  // Create the graph window and setup the graph*/
+
 
 void LoggingPage::OnResetButtonClicked(wxCommandEvent& evt) {
 	STAGE_ACTION("Reset log button clicked")

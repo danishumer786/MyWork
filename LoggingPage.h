@@ -14,6 +14,7 @@
 #include "../CommonGUIComponents/NumericTextCtrl.h"
 #include "../LaserGUI/RealTimeObserver.h"
 #include "../LaserGUI/SettingsPages/AutotunePlotCanvas.h"
+#include "../LaserGUI/GraphingWork.h"
 
 
 
@@ -95,6 +96,7 @@ private:
 	wxStaticText* TotalDataPointsValue;
 	wxButton* ResetLogButton;
 	wxButton* SaveLogNowButton;
+	wxCheckBox* checkboxes;
 
 	//////////////////////////////////////////////////////////////////////
 private:

@@ -11,20 +11,26 @@ public:
     // Constructor that accepts the checkboxes vector
     GraphPlotting(wxWindow* parent, wxWindowID winid, const wxPoint& pos, const wxSize& size, const std::vector<wxCheckBox*>& checkboxes);
 
-    // Original method for adding both currents and voltages, with labels
+    // Method for adding both currents and voltages, with labels
     void AddDataPoint(const std::vector<float>& currents,
         const std::vector<float>& voltages,
         const std::vector<std::string>& currentLabels,
         const std::vector<std::string>& voltageLabels,
         const wxString& time);
 
-    // New methods for adding only currents or only voltages, with labels
+    // Method for adding only currents, with labels
     void AddCurrentDataPoint(const std::vector<float>& currents,
         const std::vector<std::string>& currentLabels,
         const wxString& time);
 
+    // Method for adding only voltages, with labels
     void AddVoltageDataPoint(const std::vector<float>& voltages,
         const std::vector<std::string>& voltageLabels,
+        const wxString& time);
+
+    // Method for adding temperature data, with labels
+    void AddTemperatureDataPoint(const std::vector<float>& temperatures,
+        const std::vector<std::string>& tempLabels,
         const wxString& time);
 
     // Refresh the graph to reflect the updated data
@@ -32,30 +38,30 @@ public:
 
 private:
     // Data storage for the graph
-    std::deque<std::vector<float>> currentData_;
-    std::deque<std::vector<float>> voltageData_;
-    std::vector<std::string> currentLabels_;
-    std::vector<std::string> voltageLabels_;
+    std::deque<std::vector<float>> currentData_;        // Current data over time
+    std::deque<std::vector<float>> voltageData_;        // Voltage data over time
+    std::deque<std::vector<float>> temperatureData_;    // Temperature data over time
+    std::vector<std::string> currentLabels_;            // Labels for current
+    std::vector<std::string> voltageLabels_;            // Labels for voltage
+    std::vector<std::string> tempLabels_;               // Labels for temperature
+    std::deque<wxString> timeData_;                     // Time data
 
-    std::deque<wxString> timeData_;
-
-    // Vector to store the checkboxes for each TEC
-    std::vector<wxCheckBox*> checkboxes_;  // Corrected type: vector of checkboxes
-    
-    // Members to track the maximum and minimum values for scaling
+    // Min and max values for scaling
     float currentMax_ = std::numeric_limits<float>::lowest();
     float currentMin_ = std::numeric_limits<float>::max();
     float voltageMax_ = std::numeric_limits<float>::lowest();
     float voltageMin_ = std::numeric_limits<float>::max();
+    float tempMax_ = std::numeric_limits<float>::lowest();
+    float tempMin_ = std::numeric_limits<float>::max();
+
+    // Vector to store the checkboxes for each TEC
+    std::vector<wxCheckBox*> checkboxes_;
 
     // Event handling and rendering
     void paintEvent(wxPaintEvent& evt);
     void render(wxDC& dc);
 
     // Methods for drawing different components of the graph
-    // void drawAxesLabels(wxDC& dc, int width, int height);
-    // void drawLegend(wxDC& dc, int width);
-    // void drawGridLines(wxDC& dc, int width, int height);
     void OnResize(wxSizeEvent& event);
 
     // Method for drawing Y-axis labels
