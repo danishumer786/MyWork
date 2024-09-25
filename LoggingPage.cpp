@@ -21,9 +21,7 @@ static wxString CUSTOM_LOGGING_TOOLTIP = _(
 	"You may save a new, separate copy of the data to another file at any time by clicking \"Save Now\"."
 );
 static wxString SELECT_DATA_TO_RECORD_STR = _("Select Data to Record");
-////////////////////////////////////////////////////////////////////////////////////////////
-static wxString REAL_TIME_TEMP_LOG_STR = _("Real-Time Temperature Logs:");
-////////////////////////////////////////////////////////////////////////////////////////////
+static wxString REAL_TIME_TEMP_LOG_STR = _("Real-Time Selected Category Logs:");
 static wxString SELECT_LOG_OUTPUT_FILE_STR = _("Select Log Output File");
 static wxString SELECT_STR = _("Select");
 static wxString TIME_INTERVAL_STR = _("Time Interval");
@@ -46,19 +44,12 @@ const vector<LaserStateLogCategoryEnum> LASER_STATE_LOG_CATEGORIES_VISIBLE_TO_US
 };
 
 
-LoggingPage::LoggingPage(shared_ptr<MainLaserControllerInterface> _lc, wxWindow* parent) :
+    LoggingPage::LoggingPage(shared_ptr<MainLaserControllerInterface> _lc, wxWindow* parent) :
 	SettingsPage_Base(_lc, parent) {
-
-
-
 	logger = make_shared<CustomLogger>(lc);
 	CustomLogDebugOutput* logDebugOutput = new CustomLogDebugOutput();
 	logger->addObserver(logDebugOutput);
-
-
 	logTimer.Bind(wxEVT_TIMER, &LoggingPage::OnLogTimer, this, logTimer.GetId());
-
-
 	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 
 	CustomLoggingPanel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
@@ -81,8 +72,6 @@ LoggingPage::LoggingPage(shared_ptr<MainLaserControllerInterface> _lc, wxWindow*
 	SelectDataSizer->Add(SelectDataLabel, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, 5);
 
 	LogDataCheckboxesSizer = new wxBoxSizer(wxVERTICAL);
-
-
 
 	SelectDataSizer->Add(LogDataCheckboxesSizer, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, 5);
 
@@ -163,55 +152,26 @@ LoggingPage::LoggingPage(shared_ptr<MainLaserControllerInterface> _lc, wxWindow*
 	TotalLogTimeValue = new wxStaticText(LogControlsPanel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(50, -1), 0);
 	TotalLogTimeValue->SetFont(FONT_VERY_SMALL_SEMIBOLD);
 	LogStatRowsSizer->Add(TotalLogTimeValue, 0, wxALL, 5);
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Real-time Log Temperature
-	wxBoxSizer* RealTimeLogSizer = new wxBoxSizer(wxVERTICAL);
+	
 
-	// Creating and Adding the Static Text Label:
+
+      // Real-time TextCrl to show up data of all selected Categories
+	wxBoxSizer* RealTimeLogSizer = new wxBoxSizer(wxVERTICAL);
 	wxStaticText* RealTimeTempLogLabel = new wxStaticText(LogControlsPanel, wxID_ANY, _("Real-Time Temperature Logs:"), wxDefaultPosition, wxDefaultSize, 0);
 	RealTimeTempLogLabel->SetFont(FONT_SMALL_SEMIBOLD);
 	RealTimeLogSizer->Add(RealTimeTempLogLabel, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, 5);
-
-	// Creating and Adding the wxTextCtrl:
 	RealTimeTempLogTextCtrl = new wxTextCtrl(LogControlsPanel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(400, 100), wxTE_MULTILINE | wxTE_READONLY);
 	RealTimeTempLogTextCtrl->SetFont(FONT_VERY_SMALL_SEMIBOLD);
 	RealTimeLogSizer->Add(RealTimeTempLogTextCtrl, 0, wxALL | wxEXPAND, 5);
-
-	// Add the RealTimeLogSizer to LogControlsPanel's sizer
 	LogControlsSizer->Add(RealTimeLogSizer, 0, wxALL | wxEXPAND, 5);
-
-	// Creating and Adding the Graph (GraphPlotting)
 	wxBoxSizer* plotSizer = new wxBoxSizer(wxVERTICAL);
-
-	// Initialize the plot canvas
-	//GraphPlotting* graphPlotting = new GraphPlotting(LogControlsPanel, wxID_ANY, wxDefaultPosition, wxSize(400, 200), checkboxes);
-
-
-	// Add the plot canvas to the plot sizer
-	//LogControlsSizer->Add(graphPlotting, 1, wxEXPAND | wxALL, 5);
-
-	// Add the plotSizer to your existing layout
 	LogControlsSizer->Add(plotSizer, 0, wxALL | wxEXPAND, 5);
-
-	// Setting the LogControlsPanel sizer to the LoggingPage layout
 	this->SetSizerAndFit(LogControlsPanel->GetSizer());
-
-	// Ensure layout is updated
 	LogControlsSizer->Layout();
-
-	// Initialize RealTimeObserver with the wxTextCtrl and the plot canvas
-	//RealTimeObserver* tempObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, graphPlotting);
-	//logger->addObserver(tempObserver);
-
-
-	// Bind the timer event
 	logTimer.Bind(wxEVT_TIMER, &LoggingPage::OnLogTimer, this, logTimer.GetId());
 
 
 
-
-
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	// Total Data Points
 	TotalDataPointsLabel = new wxStaticText(LogControlsPanel, wxID_ANY, _(TOTAL_DATA_POINTS_STR), wxDefaultPosition, wxDefaultSize, 0);
@@ -322,7 +282,6 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 	STAGE_ACTION("Start logging button clicked")
 
 		if (logger->IsLogging()) {
-			// Stop logging if already in progress
 			STAGE_ACTION_ARGUMENTS("Stop")
 				logger->Stop();
 			logTimer.Stop();
@@ -330,7 +289,6 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			LogStatusMessage->Set(_("Paused"));
 		}
 		else {
-			// Start logging
 			STAGE_ACTION_ARGUMENTS("Start")
 				logger->SetTimeIntervalInSeconds(stoi(string(TimeIntervalTextCtrl->GetValue())));
 			logger->Start();
@@ -342,70 +300,110 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			wxFrame* graphWindow = new wxFrame(this, wxID_ANY, _("Graph Window"), wxDefaultPosition, wxSize(1200, 600));
 			wxPanel* panel = new wxPanel(graphWindow, wxID_ANY);
 
-			std::vector<wxCheckBox*> checkboxes;
+			wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
+			//--------------------------------------------------------------------------------------------------------------------------------------------------------
 
+			// ******** TEC Panel ********
+			wxPanel* tecPanel = new wxPanel(panel, wxID_ANY);
+			wxBoxSizer* tecSizer = new wxBoxSizer(wxVERTICAL);
 
-			// Now create checkboxes for the TECs and bind them to their respective plots
-			wxBoxSizer* checkboxSizer = new wxBoxSizer(wxHORIZONTAL);
+			// Local variables for TEC and Diode checkboxes
+			std::vector<wxCheckBox*> tecCheckboxes;  // Declare tecCheckboxes here
+			wxBoxSizer* tecCheckboxSizer = new wxBoxSizer(wxHORIZONTAL);
+
 			vector<int> tecIDs = lc->GetTemperatureControlIDs();
 			GraphPlotting* currentPlot = nullptr;
 			GraphPlotting* voltagePlot = nullptr;
 			GraphPlotting* tempPlot = nullptr;
 
-
+			// TEC Checkboxes for current, voltage, and temperature
 			for (int id : tecIDs) {
 				std::string label = lc->GetTemperatureControlLabel(id);
+				wxCheckBox* tecCheckBox = new wxCheckBox(tecPanel, wxID_ANY, label, wxDefaultPosition, wxDefaultSize);
 
-				
-				wxCheckBox* checkBox = new wxCheckBox(panel, wxID_ANY, label, wxDefaultPosition, wxDefaultSize);
-
-				checkBox->Bind(wxEVT_CHECKBOX, [&, currentPlot,voltagePlot,tempPlot](wxCommandEvent& event) {
-					if (currentPlot) { 
-						currentPlot->RefreshGraph(); 
-					}
-					else if (voltagePlot) {  
-						voltagePlot->RefreshGraph();  
-					}
-					else if (tempPlot) {  
-						tempPlot->RefreshGraph();  
-					}
-
+				tecCheckBox->Bind(wxEVT_CHECKBOX, [&, currentPlot, voltagePlot, tempPlot](wxCommandEvent& event) {
+					if (currentPlot) { currentPlot->RefreshGraph(); }
+					if (voltagePlot) { voltagePlot->RefreshGraph(); }
+					if (tempPlot) { tempPlot->RefreshGraph(); }
 					});
-				
-				checkboxes_.push_back(checkBox);
-				checkboxSizer->Add(checkBox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+
+				// Add the checkbox to the local vector
+				tecCheckboxes.push_back(tecCheckBox);
+				tecCheckboxSizer->Add(tecCheckBox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 			}
 
-			 currentPlot = new GraphPlotting(panel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), checkboxes_);
+			currentPlot = new GraphPlotting(tecPanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), tecCheckboxes);
 			currentPlot->SetMinSize(wxSize(600, 150));
 
-			 voltagePlot = new GraphPlotting(panel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), checkboxes_);
+			voltagePlot = new GraphPlotting(tecPanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), tecCheckboxes);
 			voltagePlot->SetMinSize(wxSize(600, 150));
 
-			 tempPlot = new GraphPlotting(panel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), checkboxes_);
+			tempPlot = new GraphPlotting(tecPanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), tecCheckboxes);
 			tempPlot->SetMinSize(wxSize(600, 150));
 
+			// Observer for TEC data
+			RealTimeObserver* tecObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, currentPlot, voltagePlot, tempPlot);
+			logger->addObserver(tecObserver);
+
 			
-			RealTimeObserver* tempObserverForWindow = new RealTimeObserver(RealTimeTempLogTextCtrl, currentPlot, voltagePlot, tempPlot);
-			logger->addObserver(tempObserverForWindow);
+			tecSizer->Add(tecCheckboxSizer, 0, wxEXPAND | wxALL, 5);
+			tecSizer->Add(currentPlot, 1, wxEXPAND | wxALL, 5);
+			tecSizer->Add(voltagePlot, 1, wxEXPAND | wxALL, 5);
+			tecSizer->Add(tempPlot, 1, wxEXPAND | wxALL, 5);
 
+			tecPanel->SetSizer(tecSizer);
+         
+			//------------------------------------------------------------------------------------------------------------------------------------------------
+			// ******** Diode Panel ********
+			wxPanel* diodePanel = new wxPanel(panel, wxID_ANY);
+			wxBoxSizer* diodeSizer = new wxBoxSizer(wxVERTICAL);
 
+			std::vector<wxCheckBox*> diodeCheckboxes;
+			wxBoxSizer* diodeCheckboxSizer = new wxBoxSizer(wxHORIZONTAL);
 
-			wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
-			// Add the checkboxSizer to the main sizer
-			mainSizer->Add(checkboxSizer, 0, wxEXPAND | wxALL, 5);
-			mainSizer->Add(currentPlot, 1, wxEXPAND | wxALL, 5);
-			mainSizer->Add(voltagePlot, 1, wxEXPAND | wxALL, 5);
-			mainSizer->Add(tempPlot, 1, wxEXPAND | wxALL, 5);
+			vector<int> diodeIDs = lc->GetLddIds();  // Assuming diode IDs come from GetLddIds()
+			GraphPlotting* diodePlot = nullptr;
 
+			// Diode Checkboxes for currents
+			for (int id : diodeIDs) {
+				std::string diodeLabel = lc->GetLDDLabel(id);
+				wxCheckBox* diodeCheckBox = new wxCheckBox(diodePanel, wxID_ANY, diodeLabel, wxDefaultPosition, wxDefaultSize);
+				//wxLogMessage("Creating diode checkbox for %s", diodeLabel);
+
+				diodeCheckBox->Bind(wxEVT_CHECKBOX, [&, diodePlot](wxCommandEvent& event) {
+					if (diodePlot) {
+						diodePlot->RefreshGraph();
+					}
+					});
+
+				diodeCheckboxes.push_back(diodeCheckBox);
+				diodeCheckboxSizer->Add(diodeCheckBox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+			}
+
+			// Now create the GraphPlotting after the checkboxes have been added
+			diodePlot = new GraphPlotting(diodePanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), diodeCheckboxes);
+			diodePlot->SetMinSize(wxSize(600, 150));
+
+			// Add observer for diode data
+			RealTimeObserver* diodeObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, diodePlot);
+			logger->addObserver(diodeObserver);
+
+			diodeSizer->Add(diodeCheckboxSizer, 0, wxEXPAND | wxALL, 5);
+			diodeSizer->Add(diodePlot, 1, wxEXPAND | wxALL, 5);
+			diodePanel->SetSizer(diodeSizer);
+
+			// Add both TEC and Diode panels to the mainSizer
+			mainSizer->Add(tecPanel, 1, wxEXPAND | wxALL, 5);
+			mainSizer->Add(diodePanel, 1, wxEXPAND | wxALL, 5);
+
+			// Set mainSizer for the panel
 			panel->SetSizer(mainSizer);
-
-		
 			graphWindow->Show();
 
-		
 			RefreshControlsEnabled();
 			LOG_ACTION()
+
+
 		}
 }
 

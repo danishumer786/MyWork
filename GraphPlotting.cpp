@@ -19,41 +19,6 @@ GraphPlotting::GraphPlotting(wxWindow* parent, wxWindowID winid, const wxPoint& 
     SetBackgroundStyle(wxBG_STYLE_PAINT);
    
 }
-void GraphPlotting::AddDataPoint(const std::vector<float>& currents,
-    const std::vector<float>& voltages,
-    const std::vector<std::string>& currentLabels,
-    const std::vector<std::string>& voltageLabels,
-    const wxString& time) {
- 
-    currentData_.push_back(currents);
-    voltageData_.push_back(voltages);
-
-    
-    for (const auto& label : currentLabels) {
-        currentLabels_.push_back(label); 
-    }
-    for (const auto& label : voltageLabels) {
-        voltageLabels_.push_back(label); 
-    }
-
-    timeData_.push_back(time);
-
-
-    // Update the min and max for currents and voltages
-    for (auto& current : currents) {
-        if (current > currentMax_) currentMax_ = current;
-        if (current < currentMin_) currentMin_ = current;
-    }
-
-    for (auto& voltage : voltages) {
-        if (voltage > voltageMax_) voltageMax_ = voltage;
-        if (voltage < voltageMin_) voltageMin_ = voltage;
-    }
-
-
-
-    RefreshGraph();
-}
 //--------------------------------------------------------------------------------------------------------------------------------------------------//
 void GraphPlotting::AddCurrentDataPoint(const std::vector<float>& currents,
     const std::vector<std::string>& currentLabels, const wxString& time) {
@@ -76,9 +41,6 @@ void GraphPlotting::AddCurrentDataPoint(const std::vector<float>& currents,
 void GraphPlotting::AddVoltageDataPoint(const std::vector<float>& voltages,
     const std::vector<std::string>& voltageLabels,
     const wxString& time) {
-
-
-
     // Add filtered voltage data
     voltageData_.push_back(voltages);
 
@@ -101,49 +63,89 @@ void GraphPlotting::AddVoltageDataPoint(const std::vector<float>& voltages,
 void GraphPlotting::AddTemperatureDataPoint(const std::vector<float>& temperatures,
     const std::vector<std::string>& tempLabels,
     const wxString& time) {
-
-    // Add temperature data
     temperatureData_.push_back(temperatures);
-
-    // Add the labels
     for (const auto& label : tempLabels) {
-        tempLabels_.push_back(label);  // Store the labels for temperature data
+        tempLabels_.push_back(label);  
     }
-
-    // Store the time of the data point
     timeData_.push_back(time);
-
-    // Update the min and max for temperatures
     for (const auto& temp : temperatures) {
         if (temp > tempMax_) tempMax_ = temp;
         if (temp < tempMin_) tempMin_ = temp;
     }
+    RefreshGraph();
+}
+//--------------------------------------------------------------------------------------------------------------------------------------------------//
+void GraphPlotting::AddDiodeCurrentDataPoint(const std::vector<float>& currents, const std::vector<std::string>& labels, const wxString& time) {
+    if (currents.size() != labels.size()) {
+        wxLogError("Mismatch between the number of diode currents and labels.");
+        return;
+    }
 
-    RefreshGraph();  // Refresh the graph to plot the new data
+    timeData_.push_back(time);
+
+    // Ensure diodeCurrentData_ is properly sized
+    if (diodeCurrentData_.size() < currents.size()) {
+        diodeCurrentData_.resize(currents.size());
+        diodeCurrentLabels_ = labels;
+    }
+
+    // Update current data and recalculate min/max values
+    for (size_t i = 0; i < currents.size(); ++i) {
+        diodeCurrentData_[i].push_back(currents[i]);
+
+        // Update the min and max values for diode current
+        if (currents[i] > diodeCurrentMax_) diodeCurrentMax_ = currents[i];
+        if (currents[i] < diodeCurrentMin_) diodeCurrentMin_ = currents[i];
+
+        if (diodeCurrentData_[i].size() > maxDataPoints_) {
+            diodeCurrentData_[i].erase(diodeCurrentData_[i].begin());
+        }
+    }
+
+    // Maintain time data size
+    if (timeData_.size() > maxDataPoints_) {
+        timeData_.erase(timeData_.begin());
+    }
+
+    RefreshGraph();
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------//
+
 void GraphPlotting::render(wxDC& dc) {
     dc.Clear();
 
     int width, height;
     this->GetSize(&width, &height);
 
-    if (currentData_.empty() && voltageData_.empty() && temperatureData_.empty()) return;
+    // Log size of the drawing area
+    //wxLogMessage("Rendering graph: width = %d, height = %d", width, height);
+
+    if (currentData_.empty() && voltageData_.empty() && temperatureData_.empty() && diodeCurrentData_.empty()) {
+        //wxLogMessage("No data to plot.");
+        return;
+    }
 
     const float margin = 0.05;
 
     // Set ranges for current, voltage, and temperature
+    //wxLogMessage("diodeCurrentMax: %f, diodeCurrentMin: %f, diodeCurrentRange: %f", diodeCurrentMax_, diodeCurrentMin_, diodeCurrentMax_ - diodeCurrentMin_);
+
+    float diodeCurrentRange = (diodeCurrentMax_ - diodeCurrentMin_) == 0 ? 1 : (diodeCurrentMax_ - diodeCurrentMin_);
+    //wxLogMessage("Diode Current Range: %f", diodeCurrentRange);
     float currentRange = (currentMax_ - currentMin_) == 0 ? 1 : (currentMax_ - currentMin_);
     float voltageRange = (voltageMax_ - voltageMin_) == 0 ? 1 : (voltageMax_ - voltageMin_);
     float tempRange = (tempMax_ - tempMin_) == 0 ? 1 : (tempMax_ - tempMin_);
 
+
+    float yScaleDiodeCurrent = (height - 100) / diodeCurrentRange;
+   // wxLogMessage("Y Scale for Diode Current: %f", yScaleDiodeCurrent);
     float yScaleCurrent = (height - 100) / currentRange;
     float yScaleVoltage = (height - 100) / voltageRange;
     float yScaleTemp = (height - 100) / tempRange;
 
     float xStep = static_cast<float>(width - 100) / (timeData_.size() - 1);
-
+    //wxLogMessage("X Step for Diode Plotting: %f", xStep);
     // Draw the graph box
     dc.SetPen(wxPen(*wxBLACK, 2));
     dc.DrawRectangle(50, 50, width - 100, height - 100);  // Draw graph boundary box
@@ -190,6 +192,48 @@ void GraphPlotting::render(wxDC& dc) {
     if (!voltageData_.empty()) {
         drawYAxisLabels(dc, width, height, false, voltageMax_, voltageMin_, "V");  // Right Y-axis for voltage
     }
+    if (!diodeCurrentData_.empty()) {
+        drawYAxisLabels(dc, width, height, true, diodeCurrentMax_, diodeCurrentMin_, "A");  // Left Y-axis for Diode Current in Amperes
+    }
+
+
+    if (!diodeCurrentData_.empty()) {
+        size_t diodeCount = diodeCurrentData_.size();  // Number of Diodes
+
+       /* // Safety check for checkbox size
+        if (diodeCount > checkboxes_.size()) {
+            wxLogMessage("Mismatch between diode count (%d) and checkbox size (%d). Aborting diode plotting.", diodeCount, checkboxes_.size());
+            return;
+        }*/
+
+        for (size_t diode = 0; diode < diodeCount; ++diode) {
+            std::string label = diodeCurrentLabels_[diode];
+
+           
+            if (diodeCount > checkboxes_.size()) return;
+            // Skip unchecked diodes
+            if (!checkboxes_[diode]->IsChecked()) continue;
+            
+
+           // wxLogMessage("Plotting data for diode %d with label: %s", diode, label);
+            dc.SetPen(wxPen(wxColour(0, 0, 255), 2));  // Blue for diode current
+
+            for (size_t i = 1; i < diodeCurrentData_[diode].size(); ++i) {
+                int x1 = static_cast<int>((i - 1) * xStep + 50);
+                int y1 = height - 50 - static_cast<int>((diodeCurrentData_[diode][i - 1] - diodeCurrentMin_) * yScaleDiodeCurrent);
+                int x2 = static_cast<int>(i * xStep + 50);
+                int y2 = height - 50 - static_cast<int>((diodeCurrentData_[diode][i] - diodeCurrentMin_) * yScaleDiodeCurrent);
+
+               // wxLogMessage("Plotting line from (%d, %d) to (%d, %d) for diode %d", x1, y1, x2, y2, diode);
+                dc.DrawLine(x1, y1, x2, y2);
+            }
+        }
+    }
+    else {
+        //wxLogMessage("Diode current data is empty. No diode data to plot.");
+    }
+
+
 
     // Plot the current values
     if (!currentData_.empty()) {

@@ -43,6 +43,7 @@ public:
 	
 	
 	
+	
 
 };
 
@@ -59,6 +60,7 @@ public:
 	void RefreshVisibility();
 	void OnStartButtonClicked(wxCommandEvent& evt);
 	void OnCheckboxToggle(wxCommandEvent& event);
+	
 	
 
 
@@ -104,6 +106,8 @@ private:
 	RealTimeObserver* tempObserver;
 	
 	std::vector<wxCheckBox*> checkboxes_;
+
+	
 	
 
 
