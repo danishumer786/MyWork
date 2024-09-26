@@ -298,29 +298,27 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 
 			// Create a new graph window
 			wxFrame* graphWindow = new wxFrame(this, wxID_ANY, _("Graph Window"), wxDefaultPosition, wxSize(1200, 600));
-
 			wxScrolledWindow* scrolledWindow = new wxScrolledWindow(graphWindow, wxID_ANY);
 			scrolledWindow->SetScrollRate(10, 10);  // Set the scroll rate for the window
-			//wxPanel* panel = new wxPanel(graphWindow, wxID_ANY);
 
 			wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
-			
-			//--------------------------------------------------------------------------------------------------------------------------------------------------------
 
+			// --------------------------------------------------------------------------------------------------------------------------------------------------------
 			// ******** TEC Panel ********
 			wxPanel* tecPanel = new wxPanel(scrolledWindow, wxID_ANY);
 			wxBoxSizer* tecSizer = new wxBoxSizer(wxVERTICAL);
 
-			// Local variables for TEC and Diode checkboxes
-			std::vector<wxCheckBox*> tecCheckboxes;  // Declare tecCheckboxes here
+			
+
+			std::vector<wxCheckBox*> tecCheckboxes;
 			wxBoxSizer* tecCheckboxSizer = new wxBoxSizer(wxHORIZONTAL);
 
-			vector<int> tecIDs = lc->GetTemperatureControlIDs();
 			GraphPlotting* currentPlot = nullptr;
 			GraphPlotting* voltagePlot = nullptr;
 			GraphPlotting* tempPlot = nullptr;
 
 			// TEC Checkboxes for current, voltage, and temperature
+			vector<int> tecIDs = lc->GetTemperatureControlIDs();
 			for (int id : tecIDs) {
 				std::string label = lc->GetTemperatureControlLabel(id);
 				wxCheckBox* tecCheckBox = new wxCheckBox(tecPanel, wxID_ANY, label, wxDefaultPosition, wxDefaultSize);
@@ -331,36 +329,57 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 					if (tempPlot) { tempPlot->RefreshGraph(); }
 					});
 
-				// Add the checkbox to the local vector
 				tecCheckboxes.push_back(tecCheckBox);
 				tecCheckboxSizer->Add(tecCheckBox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 			}
 
+			
+
+			// Add checkboxes under the current plot
+			tecSizer->Add(tecCheckboxSizer, 0, wxEXPAND | wxALL, 5);
+
+			// 1. Create TEC Current label and plot
+			wxStaticText* tecCurrentLabel = new wxStaticText(tecPanel, wxID_ANY, _("TEC Current"), wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE);
+			tecCurrentLabel->SetFont(tecCurrentLabel->GetFont().Bold());
+			tecSizer->Add(tecCurrentLabel, 0, wxEXPAND | wxALL, 5);  // Add the label above the current graph
+
 			currentPlot = new GraphPlotting(tecPanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), tecCheckboxes);
 			currentPlot->SetMinSize(wxSize(1000, 300));
+			tecSizer->Add(currentPlot, 1, wxEXPAND | wxALL, 5);  // Add the current graph below the label
+
+			// 2. Create TEC Voltage label and plot
+			wxStaticText* tecVoltageLabel = new wxStaticText(tecPanel, wxID_ANY, _("TEC Voltage"), wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE);
+			tecVoltageLabel->SetFont(tecVoltageLabel->GetFont().Bold());
+			tecSizer->Add(tecVoltageLabel, 0, wxEXPAND | wxALL, 5);  // Add the label above the voltage graph
 
 			voltagePlot = new GraphPlotting(tecPanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), tecCheckboxes);
 			voltagePlot->SetMinSize(wxSize(1000, 300));
+			tecSizer->Add(voltagePlot, 1, wxEXPAND | wxALL, 5);  // Add the voltage graph below the label
+
+			// 3. Create TEC Temperature label and plot
+			wxStaticText* tecTempLabel = new wxStaticText(tecPanel, wxID_ANY, _("TEC Temperature"), wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE);
+			tecTempLabel->SetFont(tecTempLabel->GetFont().Bold());
+			tecSizer->Add(tecTempLabel, 0, wxEXPAND | wxALL, 5);  // Add the label above the temperature graph
 
 			tempPlot = new GraphPlotting(tecPanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), tecCheckboxes);
 			tempPlot->SetMinSize(wxSize(1000, 300));
+			tecSizer->Add(tempPlot, 1, wxEXPAND | wxALL, 10);  // Add the temperature graph below the label
 
 			// Observer for TEC data
 			RealTimeObserver* tecObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, currentPlot, voltagePlot, tempPlot);
 			logger->addObserver(tecObserver);
 
-			
-			tecSizer->Add(tecCheckboxSizer, 0, wxEXPAND | wxALL, 5);
-			tecSizer->Add(currentPlot, 1, wxEXPAND | wxALL, 5);
-			tecSizer->Add(voltagePlot, 1, wxEXPAND | wxALL, 5);
-			tecSizer->Add(tempPlot, 1, wxEXPAND | wxALL, 10);
-
 			tecPanel->SetSizer(tecSizer);
-         
-			//------------------------------------------------------------------------------------------------------------------------------------------------
+
+			// ------------------------------------------------------------------------------------------------------------------------------------------------
 			// ******** Diode Panel ********
 			wxPanel* diodePanel = new wxPanel(scrolledWindow, wxID_ANY);
 			wxBoxSizer* diodeSizer = new wxBoxSizer(wxVERTICAL);
+
+			// Create Diode Current label and plot
+			wxStaticText* diodeCurrentLabel = new wxStaticText(diodePanel, wxID_ANY, _("Diode Current"), wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE);
+			diodeCurrentLabel->SetFont(diodeCurrentLabel->GetFont().Bold());
+			diodeSizer->Add(diodeCurrentLabel, 0, wxEXPAND | wxALL, 5);  // Add the label above the diode current graph
 
 			std::vector<wxCheckBox*> diodeCheckboxes;
 			wxBoxSizer* diodeCheckboxSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -372,7 +391,6 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			for (int id : diodeIDs) {
 				std::string diodeLabel = lc->GetLDDLabel(id);
 				wxCheckBox* diodeCheckBox = new wxCheckBox(diodePanel, wxID_ANY, diodeLabel, wxDefaultPosition, wxDefaultSize);
-				//wxLogMessage("Creating diode checkbox for %s", diodeLabel);
 
 				diodeCheckBox->Bind(wxEVT_CHECKBOX, [&, diodePlot](wxCommandEvent& event) {
 					if (diodePlot) {
@@ -383,38 +401,31 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 				diodeCheckboxes.push_back(diodeCheckBox);
 				diodeCheckboxSizer->Add(diodeCheckBox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 			}
+			// Add checkboxes under the diode current plot
+			diodeSizer->Add(diodeCheckboxSizer, 0, wxEXPAND | wxALL, 5);
 
-			// Now create the GraphPlotting after the checkboxes have been added
-			diodePlot = new GraphPlotting(diodePanel, wxID_ANY, wxDefaultPosition, wxDefaultSize, diodeCheckboxes);
-			//diodePlot->SetMinSize(wxSize(100, 50));
+			diodePlot = new GraphPlotting(diodePanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), diodeCheckboxes);
+			diodeSizer->Add(diodePlot, 1, wxEXPAND | wxALL, 5);  // Add the diode current graph below the label
+
+			diodePanel->SetSizer(diodeSizer);
 
 			// Add observer for diode data
 			RealTimeObserver* diodeObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, diodePlot);
 			logger->addObserver(diodeObserver);
 
-			diodeSizer->Add(diodeCheckboxSizer, 0, wxEXPAND | wxALL, 5);
-			diodeSizer->Add(diodePlot, 1, wxEXPAND | wxALL, 5);
-			diodePanel->SetSizer(diodeSizer);
-
+			
 			// Add both TEC and Diode panels to the mainSizer
 			mainSizer->Add(tecPanel, 3, wxEXPAND | wxALL, 5);
 			mainSizer->Add(diodePanel, 1.2, wxEXPAND | wxALL, 5);
-			
 
-			// Set mainSizer for the panel
-			//panel->SetSizer(mainSizer);
-
-			 // Set the mainSizer to the scrolled window
+			// Set the mainSizer to the scrolled window
 			scrolledWindow->SetSizer(mainSizer);
 			scrolledWindow->FitInside();
 
-		
 			graphWindow->Show();
 
 			RefreshControlsEnabled();
 			LOG_ACTION()
-
-
 		}
 }
 
