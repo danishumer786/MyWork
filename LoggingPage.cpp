@@ -298,13 +298,17 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 
 			// Create a new graph window
 			wxFrame* graphWindow = new wxFrame(this, wxID_ANY, _("Graph Window"), wxDefaultPosition, wxSize(1200, 600));
-			wxPanel* panel = new wxPanel(graphWindow, wxID_ANY);
+
+			wxScrolledWindow* scrolledWindow = new wxScrolledWindow(graphWindow, wxID_ANY);
+			scrolledWindow->SetScrollRate(10, 10);  // Set the scroll rate for the window
+			//wxPanel* panel = new wxPanel(graphWindow, wxID_ANY);
 
 			wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
+			
 			//--------------------------------------------------------------------------------------------------------------------------------------------------------
 
 			// ******** TEC Panel ********
-			wxPanel* tecPanel = new wxPanel(panel, wxID_ANY);
+			wxPanel* tecPanel = new wxPanel(scrolledWindow, wxID_ANY);
 			wxBoxSizer* tecSizer = new wxBoxSizer(wxVERTICAL);
 
 			// Local variables for TEC and Diode checkboxes
@@ -333,13 +337,13 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			}
 
 			currentPlot = new GraphPlotting(tecPanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), tecCheckboxes);
-			currentPlot->SetMinSize(wxSize(600, 150));
+			currentPlot->SetMinSize(wxSize(1000, 300));
 
 			voltagePlot = new GraphPlotting(tecPanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), tecCheckboxes);
-			voltagePlot->SetMinSize(wxSize(600, 150));
+			voltagePlot->SetMinSize(wxSize(1000, 300));
 
 			tempPlot = new GraphPlotting(tecPanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), tecCheckboxes);
-			tempPlot->SetMinSize(wxSize(600, 150));
+			tempPlot->SetMinSize(wxSize(1000, 300));
 
 			// Observer for TEC data
 			RealTimeObserver* tecObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, currentPlot, voltagePlot, tempPlot);
@@ -349,13 +353,13 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			tecSizer->Add(tecCheckboxSizer, 0, wxEXPAND | wxALL, 5);
 			tecSizer->Add(currentPlot, 1, wxEXPAND | wxALL, 5);
 			tecSizer->Add(voltagePlot, 1, wxEXPAND | wxALL, 5);
-			tecSizer->Add(tempPlot, 1, wxEXPAND | wxALL, 5);
+			tecSizer->Add(tempPlot, 1, wxEXPAND | wxALL, 10);
 
 			tecPanel->SetSizer(tecSizer);
          
 			//------------------------------------------------------------------------------------------------------------------------------------------------
 			// ******** Diode Panel ********
-			wxPanel* diodePanel = new wxPanel(panel, wxID_ANY);
+			wxPanel* diodePanel = new wxPanel(scrolledWindow, wxID_ANY);
 			wxBoxSizer* diodeSizer = new wxBoxSizer(wxVERTICAL);
 
 			std::vector<wxCheckBox*> diodeCheckboxes;
@@ -381,8 +385,8 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			}
 
 			// Now create the GraphPlotting after the checkboxes have been added
-			diodePlot = new GraphPlotting(diodePanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), diodeCheckboxes);
-			diodePlot->SetMinSize(wxSize(600, 150));
+			diodePlot = new GraphPlotting(diodePanel, wxID_ANY, wxDefaultPosition, wxDefaultSize, diodeCheckboxes);
+			//diodePlot->SetMinSize(wxSize(100, 50));
 
 			// Add observer for diode data
 			RealTimeObserver* diodeObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, diodePlot);
@@ -393,11 +397,18 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			diodePanel->SetSizer(diodeSizer);
 
 			// Add both TEC and Diode panels to the mainSizer
-			mainSizer->Add(tecPanel, 1, wxEXPAND | wxALL, 5);
-			mainSizer->Add(diodePanel, 1, wxEXPAND | wxALL, 5);
+			mainSizer->Add(tecPanel, 3, wxEXPAND | wxALL, 5);
+			mainSizer->Add(diodePanel, 1.2, wxEXPAND | wxALL, 5);
+			
 
 			// Set mainSizer for the panel
-			panel->SetSizer(mainSizer);
+			//panel->SetSizer(mainSizer);
+
+			 // Set the mainSizer to the scrolled window
+			scrolledWindow->SetSizer(mainSizer);
+			scrolledWindow->FitInside();
+
+		
 			graphWindow->Show();
 
 			RefreshControlsEnabled();
