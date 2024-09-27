@@ -111,6 +111,35 @@ void GraphPlotting::AddDiodeCurrentDataPoint(const std::vector<float>& currents,
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------//
+void GraphPlotting::AddPowerDataPoint(const std::vector<float>& powerReadings, const std::vector<std::string>& labels, const wxString& time) {
+    // Add power data to the internal structure
+    powerData_.push_back(powerReadings);
+
+    // If this is the first time adding power data, or if the size of the labels has changed, update the labels
+    if (powerLabels_.empty() || powerLabels_.size() != labels.size()) {
+        powerLabels_ = labels;  // Update the labels for power readings
+    }
+
+    // Update min/max for power for correct scaling
+    for (const auto& power : powerReadings) {
+        if (power > powerMax_) powerMax_ = power;
+        if (power < powerMin_) powerMin_ = power;
+    }
+
+    // Ensure the time data is updated and graph refreshed
+    timeData_.push_back(time);
+
+    // Maintain maxDataPoints_ if required (this logic might depend on your application)
+    if (timeData_.size() > maxDataPoints_) {
+        timeData_.erase(timeData_.begin());
+    }
+
+    // Refresh the graph to display the new power data points
+    RefreshGraph();
+}
+
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------//
 
 void GraphPlotting::render(wxDC& dc) {
     dc.Clear();
@@ -118,31 +147,28 @@ void GraphPlotting::render(wxDC& dc) {
     int width, height;
     this->GetSize(&width, &height);
 
-    // Log size of the drawing area
-    //wxLogMessage("Rendering graph: width = %d, height = %d", width, height);
 
-    if (currentData_.empty() && voltageData_.empty() && temperatureData_.empty() && diodeCurrentData_.empty()) {
+
+    if (currentData_.empty() && voltageData_.empty() && temperatureData_.empty() && diodeCurrentData_.empty() && powerData_.empty()) {
         //wxLogMessage("No data to plot.");
         return;
     }
-
     const float margin = 0.05;
-
-    // Set ranges for current, voltage, and temperature
-    //wxLogMessage("diodeCurrentMax: %f, diodeCurrentMin: %f, diodeCurrentRange: %f", diodeCurrentMax_, diodeCurrentMin_, diodeCurrentMax_ - diodeCurrentMin_);
 
     float diodeCurrentRange = (diodeCurrentMax_ - diodeCurrentMin_) == 0 ? 1 : (diodeCurrentMax_ - diodeCurrentMin_);
     //wxLogMessage("Diode Current Range: %f", diodeCurrentRange);
     float currentRange = (currentMax_ - currentMin_) == 0 ? 1 : (currentMax_ - currentMin_);
     float voltageRange = (voltageMax_ - voltageMin_) == 0 ? 1 : (voltageMax_ - voltageMin_);
     float tempRange = (tempMax_ - tempMin_) == 0 ? 1 : (tempMax_ - tempMin_);
+    float powerRange = (powerMax_ - powerMin_) == 0 ? 1 : (powerMax_ - powerMin_);
 
 
     float yScaleDiodeCurrent = (height - 100) / diodeCurrentRange;
-   // wxLogMessage("Y Scale for Diode Current: %f", yScaleDiodeCurrent);
+    // wxLogMessage("Y Scale for Diode Current: %f", yScaleDiodeCurrent);
     float yScaleCurrent = (height - 100) / currentRange;
     float yScaleVoltage = (height - 100) / voltageRange;
     float yScaleTemp = (height - 100) / tempRange;
+    float yScalePower= (height - 100) / powerRange;
 
     float xStep = static_cast<float>(width - 100) / (timeData_.size() - 1);
     //wxLogMessage("X Step for Diode Plotting: %f", xStep);
@@ -156,7 +182,7 @@ void GraphPlotting::render(wxDC& dc) {
         int yPos = height - 50 - (i * (height - 100) / 10);
         dc.DrawLine(50, yPos, width - 50, yPos);
     }
-   
+
 
     // Draw X-axis time labels
     dc.SetPen(wxPen(*wxBLACK, 1));
@@ -195,27 +221,31 @@ void GraphPlotting::render(wxDC& dc) {
     if (!diodeCurrentData_.empty()) {
         drawYAxisLabels(dc, width, height, true, diodeCurrentMax_, diodeCurrentMin_, "A");  // Left Y-axis for Diode Current in Amperes
     }
+    if (!powerData_.empty()) {
+        drawYAxisLabels(dc, width, height, false, powerMax_, powerMin_, "W");  // Right Y-axis for power in Watts
+    }
+
 
 
     if (!diodeCurrentData_.empty()) {
         size_t diodeCount = diodeCurrentData_.size();  // Number of Diodes
 
-       /* // Safety check for checkbox size
-        if (diodeCount > checkboxes_.size()) {
-            wxLogMessage("Mismatch between diode count (%d) and checkbox size (%d). Aborting diode plotting.", diodeCount, checkboxes_.size());
-            return;
-        }*/
+        /* // Safety check for checkbox size
+         if (diodeCount > checkboxes_.size()) {
+             wxLogMessage("Mismatch between diode count (%d) and checkbox size (%d). Aborting diode plotting.", diodeCount, checkboxes_.size());
+             return;
+         }*/
 
         for (size_t diode = 0; diode < diodeCount; ++diode) {
             std::string label = diodeCurrentLabels_[diode];
 
-           
+
             if (diodeCount > checkboxes_.size()) return;
             // Skip unchecked diodes
             if (!checkboxes_[diode]->IsChecked()) continue;
-            
 
-           // wxLogMessage("Plotting data for diode %d with label: %s", diode, label);
+
+            // wxLogMessage("Plotting data for diode %d with label: %s", diode, label);
             dc.SetPen(wxPen(wxColour(0, 0, 255), 2));  // Blue for diode current
 
             for (size_t i = 1; i < diodeCurrentData_[diode].size(); ++i) {
@@ -224,7 +254,7 @@ void GraphPlotting::render(wxDC& dc) {
                 int x2 = static_cast<int>(i * xStep + 50);
                 int y2 = height - 50 - static_cast<int>((diodeCurrentData_[diode][i] - diodeCurrentMin_) * yScaleDiodeCurrent);
 
-               // wxLogMessage("Plotting line from (%d, %d) to (%d, %d) for diode %d", x1, y1, x2, y2, diode);
+                // wxLogMessage("Plotting line from (%d, %d) to (%d, %d) for diode %d", x1, y1, x2, y2, diode);
                 dc.DrawLine(x1, y1, x2, y2);
             }
         }
@@ -306,6 +336,36 @@ void GraphPlotting::render(wxDC& dc) {
                     int x2 = static_cast<int>(i * xStep + 50);
                     int y2 = height - 50 - static_cast<int>((temperatureData_[i][tec] - tempMin_) * yScaleTemp);
                     dc.DrawLine(x1, y1, x2, y2);
+                }
+            }
+        }
+    }
+
+
+    // Plot the power values
+    if (!powerData_.empty()) {
+        size_t powerMonitorCount = powerData_.front().size();  // Number of power monitors
+
+        for (size_t powerMonitor = 0; powerMonitor < powerMonitorCount; ++powerMonitor) {
+            std::string label = powerLabels_[powerMonitor];  // Power label for each monitor
+
+            // Ensure the powerMonitor index is within the bounds of checkboxes_
+            if (powerMonitor >= checkboxes_.size()) {
+                continue;  // Skip this monitor if index is out of bounds
+            }
+
+            // Skip unchecked power monitors
+            if (!checkboxes_[powerMonitor]->IsChecked()) continue;
+
+            dc.SetPen(wxPen(wxColour(0, 0, 255), 2));  // Blue line for power readings
+
+            for (size_t i = 1; i < powerData_.size(); ++i) {
+                if (powerMonitor < powerData_[i - 1].size() && powerMonitor < powerData_[i].size()) {
+                    int x1 = static_cast<int>((i - 1) * xStep + 50);
+                    int y1 = height - 50 - static_cast<int>((powerData_[i - 1][powerMonitor] - powerMin_) * yScalePower);
+                    int x2 = static_cast<int>(i * xStep + 50);
+                    int y2 = height - 50 - static_cast<int>((powerData_[i][powerMonitor] - powerMin_) * yScalePower);
+                    dc.DrawLine(x1, y1, x2, y2);  // Plot the power data line
                 }
             }
         }

@@ -1,26 +1,16 @@
 #pragma once
 
 #include <map>
-
 #include "wx/wx.h"
-
-
 
 #include "SettingsPage_Base.h"
 #include "Loggers/CustomLogger.h"
 #include "../CommonGUIComponents/FeatureTitle.h"
 #include "../CommonGUIComponents/DynamicStatusMessage.h"
-
 #include "../CommonGUIComponents/NumericTextCtrl.h"
 #include "../LaserGUI/RealTimeObserver.h"
 #include "../LaserGUI/SettingsPages/AutotunePlotCanvas.h"
 #include "../LaserGUI/GraphingWork.h"
-
-
-
-
-
-
 
 
 class LogCategoryCheckbox : public wxCheckBox {
@@ -39,12 +29,6 @@ public:
 	LogCategoryCheckbox(shared_ptr<MainLaserControllerInterface> _lc, wxWindow* parent, shared_ptr<CustomLogger> _logger, LaserStateLogCategoryEnum _category);
 	void RefreshEnableStatus();
 	void RefreshStrings();
-	
-	
-	
-	
-	
-
 };
 
 
@@ -62,15 +46,10 @@ public:
 	void OnCheckboxToggle(wxCommandEvent& event);
 	
 	
-
-
 private:
 
 	std::shared_ptr<CustomLogger> logger;
-
-	std::vector<LogCategoryCheckbox*> categoryCheckboxes;
-
-
+    std::vector<LogCategoryCheckbox*> categoryCheckboxes;
 	wxTimer logTimer;
 
 	unsigned int totalLogTimeInS = 0;
@@ -100,7 +79,6 @@ private:
 	wxButton* SaveLogNowButton;
 	wxCheckBox* checkboxes;
 
-	//////////////////////////////////////////////////////////////////////
 private:
 	wxTextCtrl* RealTimeTempLogTextCtrl;
 	RealTimeObserver* tempObserver;

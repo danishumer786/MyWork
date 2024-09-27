@@ -218,8 +218,6 @@ const vector<LaserStateLogCategoryEnum> LASER_STATE_LOG_CATEGORIES_VISIBLE_TO_US
 	sizer->Fit(this);
 
 }
-
-
 void LoggingPage::Init() {
 
 	InitCategoryCheckboxes();
@@ -228,8 +226,6 @@ void LoggingPage::Init() {
 
 
 }
-
-
 void LoggingPage::InitCategoryCheckboxes() {
 	categoryCheckboxes.clear();
 	for (auto& categoryCheckbox : LogDataCheckboxesSizer->GetChildren())
@@ -252,8 +248,6 @@ void LoggingPage::InitCategoryCheckboxes() {
 	Layout();
 	Refresh();
 }
-
-
 void LoggingPage::OnSelectLogOutputFileButtonClicked(wxCommandEvent& evt) {
 	STAGE_ACTION("Select Log Output File button clicked")
 		wxString defaultLogFileName = "LaserStateLog_(" + lc->GetLaserModel() + ")_(Serial#" + lc->GetSerialNumber() + ")_(" + GenerateDateString() + ")";
@@ -275,9 +269,6 @@ void LoggingPage::OnSelectLogOutputFileButtonClicked(wxCommandEvent& evt) {
 	RefreshControlsEnabled();
 	LOG_ACTION()
 }
-
-
-
 void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 	STAGE_ACTION("Start logging button clicked")
 
@@ -307,9 +298,6 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			// ******** TEC Panel ********
 			wxPanel* tecPanel = new wxPanel(scrolledWindow, wxID_ANY);
 			wxBoxSizer* tecSizer = new wxBoxSizer(wxVERTICAL);
-
-			
-
 			std::vector<wxCheckBox*> tecCheckboxes;
 			wxBoxSizer* tecCheckboxSizer = new wxBoxSizer(wxHORIZONTAL);
 
@@ -332,9 +320,6 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 				tecCheckboxes.push_back(tecCheckBox);
 				tecCheckboxSizer->Add(tecCheckBox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 			}
-
-			
-
 			// Add checkboxes under the current plot
 			tecSizer->Add(tecCheckboxSizer, 0, wxEXPAND | wxALL, 5);
 
@@ -410,13 +395,62 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			diodePanel->SetSizer(diodeSizer);
 
 			// Add observer for diode data
-			RealTimeObserver* diodeObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, diodePlot);
+			RealTimeObserver* diodeObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, diodePlot, PlotType::Diode);
 			logger->addObserver(diodeObserver);
 
-			
+			//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+			//Working on Laser Power
+			// Add power panel to the main graph window in the LoggingPage::OnStartButtonClicked function
+			wxPanel* powerPanel = new wxPanel(scrolledWindow, wxID_ANY);
+			wxBoxSizer* powerSizer = new wxBoxSizer(wxVERTICAL);
+
+			// Create Power Monitor label and plot
+			wxStaticText* powerLabel = new wxStaticText(powerPanel, wxID_ANY, _("Power Monitor"), wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE);
+			powerLabel->SetFont(powerLabel->GetFont().Bold());
+			powerSizer->Add(powerLabel, 0, wxEXPAND | wxALL, 5);
+
+			std::vector<wxCheckBox*> powerCheckboxes;
+			wxBoxSizer* powerCheckboxSizer = new wxBoxSizer(wxHORIZONTAL);
+
+			// Create Power Checkboxes
+			vector<int> powerMonitorIDs = lc->GetPowerMonitorIDs();
+			GraphPlotting* powerPlot = nullptr;
+			for (int id : powerMonitorIDs) {
+				std::string label = lc->GetPowerMonitorLabel(id);
+				wxCheckBox* powerCheckBox = new wxCheckBox(powerPanel, wxID_ANY, label, wxDefaultPosition, wxDefaultSize);
+
+				powerCheckBox->Bind(wxEVT_CHECKBOX, [&, powerPlot](wxCommandEvent& event) {
+					if (powerPlot) {
+						powerPlot->RefreshGraph();
+					}
+					});
+
+				powerCheckboxes.push_back(powerCheckBox);
+				powerCheckboxSizer->Add(powerCheckBox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+			}
+			powerSizer->Add(powerCheckboxSizer, 0, wxEXPAND | wxALL, 5);
+
+			// Create Power Graph Plotting
+			powerPlot = new GraphPlotting(powerPanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), powerCheckboxes);
+			//powerPlot->SetMinSize(wxSize(1000, 300));
+			powerSizer->Add(powerPlot, 1, wxEXPAND | wxALL, 5);
+
+			powerPanel->SetSizer(powerSizer);
+
+			// Add observer for power data
+			RealTimeObserver* powerObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, powerPlot, PlotType::Power);
+			logger->addObserver(powerObserver);
+
+			//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+			//working onSensers
+
+
+
 			// Add both TEC and Diode panels to the mainSizer
 			mainSizer->Add(tecPanel, 3, wxEXPAND | wxALL, 5);
 			mainSizer->Add(diodePanel, 1.2, wxEXPAND | wxALL, 5);
+			mainSizer->Add(powerPanel, 1, wxEXPAND | wxALL, 5);
 
 			// Set the mainSizer to the scrolled window
 			scrolledWindow->SetSizer(mainSizer);
@@ -428,7 +462,6 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			LOG_ACTION()
 		}
 }
-
 /*
 			// Create the graphing window using the new class
 			GraphingWork graphingWork(this, logger, RealTimeTempLogTextCtrl, lc);

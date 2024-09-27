@@ -7,22 +7,25 @@ void RealTimeObserver::onDataPointLogged(std::map<std::string, std::string> data
     textCtrl_->AppendText("Received Data:\n");
     wxString currentTime = wxDateTime::Now().Format("%H:%M:%S");
 
-    // Separate data containers for TEC and Diode
+    // Separate data containers for TEC, Diode, and Power
     std::vector<float> currents;           // For TEC currents
     std::vector<float> voltages;           // For TEC voltages
     std::vector<float> temperatures;       // For TEC temperatures
     std::vector<float> diodeCurrents;      // For Diode currents
+    std::vector<float> powerReadings;      // For Power readings
 
     std::vector<std::string> currentLabels;       // Labels for TEC currents
     std::vector<std::string> voltageLabels;       // Labels for TEC voltages
     std::vector<std::string> tempLabels;          // Labels for TEC temperatures
     std::vector<std::string> diodeCurrentLabels;  // Labels for Diode currents
+    std::vector<std::string> powerLabels;         // Labels for Power readings
 
     // Flags to track if any data was found
     bool currentDataFound = false;
     bool voltageDataFound = false;
     bool tempDataFound = false;
     bool diodeCurrentDataFound = false;
+    bool powerDataFound = false;
 
     // Iterate through the received data
     for (const auto& entry : data) {
@@ -59,10 +62,17 @@ void RealTimeObserver::onDataPointLogged(std::map<std::string, std::string> data
             else if (entry.first.find("ActualCurrent-") != std::string::npos) {
                 float diodeCurrentValue = std::stof(entry.second);
                 std::string label = entry.first.substr(entry.first.find("-") + 1);
-                //wxLogMessage("Diode Current Label: %s", label);
                 diodeCurrents.push_back(diodeCurrentValue);
                 diodeCurrentLabels.push_back(label);
                 diodeCurrentDataFound = true;
+            }
+            // Handle Power readings
+            else if (entry.first.find("PowerMonitor-") != std::string::npos) {
+                float powerValue = std::stof(entry.second);
+                std::string label = entry.first.substr(entry.first.find("-") + 1);
+                powerReadings.push_back(powerValue);
+                powerLabels.push_back(label);
+                powerDataFound = true;
             }
         }
         catch (const std::exception& e) {
@@ -86,4 +96,8 @@ void RealTimeObserver::onDataPointLogged(std::map<std::string, std::string> data
         diodePlot_->AddDiodeCurrentDataPoint(diodeCurrents, diodeCurrentLabels, currentTime);
     }
 
+    // Pass data to the Power plot
+    if (powerDataFound && powerPlot_) {
+        powerPlot_->AddPowerDataPoint(powerReadings, powerLabels, currentTime);  // Assuming AddPowerDataPoint is implemented
+    }
 }

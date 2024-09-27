@@ -6,6 +6,7 @@
 //		e.g., mapEnumToCategory[NEW_CATEGORY] = make_shared<LaserStateLogCategory_NewCategory>(laserController);
 
 #include "CustomLogger.h"
+
 //#include "LaserGUI/GraphWindow.h"
 
 
@@ -76,8 +77,13 @@ public:
 	vector<string> GetColumnNames() const override {
 		vector<string> columnNames;
 		const string PREFIX = "PowerMonitor-";
+
 		for (int id : lc->GetPowerMonitorIDs()) {
+			for (int id : lc->GetPowerMonitorIDs()) {
+			}
+
 			const string LABEL = lc->GetPowerMonitorLabel(id);
+			
 			columnNames.push_back(PREFIX + LABEL);
 		}
 		return columnNames;

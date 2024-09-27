@@ -27,6 +27,7 @@
 #include "../MainLaserController.h"
 #include<string>
 
+
 // Use these category enums to reference categories for inclusion or exclusion
 // in the CustomLogger, or to get their names for displaying in a menu.
 enum LaserStateLogCategoryEnum {
