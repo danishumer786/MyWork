@@ -442,8 +442,47 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			logger->addObserver(powerObserver);
 
 			//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	// ******** Sensor Panel ********
+			wxPanel* sensorPanel = new wxPanel(scrolledWindow, wxID_ANY);
+			wxBoxSizer* sensorSizer = new wxBoxSizer(wxVERTICAL);
 
-			//working onSensers
+			// Create Chiller Flow and Humidity label and plot
+			wxStaticText* sensorLabel = new wxStaticText(sensorPanel, wxID_ANY, _("Sensors"), wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE);
+			sensorLabel->SetFont(sensorLabel->GetFont().Bold());
+			sensorSizer->Add(sensorLabel, 0, wxEXPAND | wxALL, 5);  // Add the label above the sensor graph
+
+			// Create checkboxes for Flow and Humidity
+			std::vector<wxCheckBox*> sensorCheckboxes;
+			wxBoxSizer* sensorCheckboxSizer = new wxBoxSizer(wxHORIZONTAL);
+
+			if (lc->ChillerFlowIsEnabledForUse()) {
+				wxCheckBox* flowCheckbox = new wxCheckBox(sensorPanel, wxID_ANY, "Chiller Flow", wxDefaultPosition, wxDefaultSize);
+				sensorCheckboxes.push_back(flowCheckbox);
+				sensorCheckboxSizer->Add(flowCheckbox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+			}
+
+			auto humidityIds = lc->GetHumidityIds();
+			for (int id : humidityIds) {
+				std::string humidityLabel = lc->GetHumidityLabel(id);
+				wxCheckBox* humidityCheckbox = new wxCheckBox(sensorPanel, wxID_ANY, humidityLabel, wxDefaultPosition, wxDefaultSize);
+				sensorCheckboxes.push_back(humidityCheckbox);
+				sensorCheckboxSizer->Add(humidityCheckbox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+			}
+
+			// Add checkboxes under the sensor plot
+			sensorSizer->Add(sensorCheckboxSizer, 0, wxEXPAND | wxALL, 5);
+
+			// Create the GraphPlotting instance for sensors
+			GraphPlotting* sensorPlot = new GraphPlotting(sensorPanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), sensorCheckboxes);
+			sensorPlot->SetMinSize(wxSize(1000, 300));
+			sensorSizer->Add(sensorPlot, 1, wxEXPAND | wxALL, 5);  // Add the sensor graph below the label
+
+			// Set sizer for sensorPanel
+			sensorPanel->SetSizer(sensorSizer);
+
+			// Add observer for sensor data
+			RealTimeObserver* sensorObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, sensorPlot, PlotType::Sensors);
+			logger->addObserver(sensorObserver);
 
 
 
@@ -451,6 +490,8 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			mainSizer->Add(tecPanel, 3, wxEXPAND | wxALL, 5);
 			mainSizer->Add(diodePanel, 1.2, wxEXPAND | wxALL, 5);
 			mainSizer->Add(powerPanel, 1, wxEXPAND | wxALL, 5);
+			mainSizer->Add(sensorPanel, 1.2, wxEXPAND | wxALL, 5);
+
 
 			// Set the mainSizer to the scrolled window
 			scrolledWindow->SetSizer(mainSizer);

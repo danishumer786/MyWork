@@ -17,6 +17,7 @@ public:
     void AddTemperatureDataPoint(const std::vector<float>& temperatures, const std::vector<std::string>& tempLabels, const wxString& time);
     void AddDiodeCurrentDataPoint(const std::vector<float>& currents, const std::vector<std::string>& labels, const wxString& time);
     void AddPowerDataPoint(const std::vector<float>& powerReadings, const std::vector<std::string>& labels, const wxString& time);
+    void AddSensorDataPoint(const std::vector<float>& sensorReadings, const std::vector<std::string>& labels, const wxString& time);
     void RefreshGraph();
 
 private:
@@ -37,6 +38,11 @@ private:
     std::deque<std::vector<float>> powerData_;
     std::vector<std::string> powerLabels_;
 
+    std::deque<std::vector<float>> sensorData_;
+    std::vector<std::string> sensorLabels_;
+
+
+
     std::deque<wxString> timeData_;                     
 
    
@@ -50,6 +56,8 @@ private:
     float diodeCurrentMin_ = std::numeric_limits<float>::max();
     float powerMax_= std::numeric_limits<float>::lowest();
     float powerMin_= std::numeric_limits<float>::max();
+    float sensorMax_ = std::numeric_limits<float>::lowest();
+    float sensorMin_ = std::numeric_limits<float>::max();
 
 
     std::vector<wxCheckBox*> checkboxes_;

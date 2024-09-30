@@ -140,6 +140,38 @@ void GraphPlotting::AddPowerDataPoint(const std::vector<float>& powerReadings, c
 
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------//
+void GraphPlotting::AddSensorDataPoint(const std::vector<float>& sensorReadings, const std::vector<std::string>& labels, const wxString& time) {
+    // Add sensor data to the internal structure
+    sensorData_.push_back(sensorReadings);
+
+    // If this is the first time adding sensor data, or if the size of the labels has changed, update the labels
+    if (sensorLabels_.empty() || sensorLabels_.size() != labels.size()) {
+        sensorLabels_ = labels;  // Update the labels for sensor readings
+    }
+
+    // Update min/max for sensor for correct scaling
+    for (const auto& sensor : sensorReadings) {
+        if (sensor > sensorMax_) sensorMax_ = sensor;
+        if (sensor < sensorMin_) sensorMin_ = sensor;
+    }
+
+    // Ensure the time data is updated
+    timeData_.push_back(time);
+
+    // Maintain maxDataPoints_ if required (remove old data)
+    if (timeData_.size() > maxDataPoints_) {
+        timeData_.erase(timeData_.begin());
+        sensorData_.erase(sensorData_.begin());  // Also remove the corresponding sensor data
+    }
+
+    // Refresh the graph to display the new sensor data points
+    RefreshGraph();
+}
+
+
+
+
+
 
 void GraphPlotting::render(wxDC& dc) {
     dc.Clear();
@@ -149,7 +181,7 @@ void GraphPlotting::render(wxDC& dc) {
 
 
 
-    if (currentData_.empty() && voltageData_.empty() && temperatureData_.empty() && diodeCurrentData_.empty() && powerData_.empty()) {
+    if (currentData_.empty() && voltageData_.empty() && temperatureData_.empty() && diodeCurrentData_.empty() && powerData_.empty() && sensorData_.empty()) {
         //wxLogMessage("No data to plot.");
         return;
     }
@@ -161,6 +193,7 @@ void GraphPlotting::render(wxDC& dc) {
     float voltageRange = (voltageMax_ - voltageMin_) == 0 ? 1 : (voltageMax_ - voltageMin_);
     float tempRange = (tempMax_ - tempMin_) == 0 ? 1 : (tempMax_ - tempMin_);
     float powerRange = (powerMax_ - powerMin_) == 0 ? 1 : (powerMax_ - powerMin_);
+    float sensorRange = (sensorMax_ - sensorMin_) == 0 ? 1 : (sensorMax_ - sensorMin_);
 
 
     float yScaleDiodeCurrent = (height - 100) / diodeCurrentRange;
@@ -169,6 +202,7 @@ void GraphPlotting::render(wxDC& dc) {
     float yScaleVoltage = (height - 100) / voltageRange;
     float yScaleTemp = (height - 100) / tempRange;
     float yScalePower= (height - 100) / powerRange;
+    float yScaleSensor = (height - 100) / sensorRange;
 
     float xStep = static_cast<float>(width - 100) / (timeData_.size() - 1);
     //wxLogMessage("X Step for Diode Plotting: %f", xStep);
@@ -224,17 +258,14 @@ void GraphPlotting::render(wxDC& dc) {
     if (!powerData_.empty()) {
         drawYAxisLabels(dc, width, height, false, powerMax_, powerMin_, "W");  // Right Y-axis for power in Watts
     }
+    if (!sensorData_.empty()) {
+        drawYAxisLabels(dc, width, height, false, sensorMax_, sensorMin_, "L/min");  // Flow in Liters per Minute
+    }
 
 
 
     if (!diodeCurrentData_.empty()) {
         size_t diodeCount = diodeCurrentData_.size();  // Number of Diodes
-
-        /* // Safety check for checkbox size
-         if (diodeCount > checkboxes_.size()) {
-             wxLogMessage("Mismatch between diode count (%d) and checkbox size (%d). Aborting diode plotting.", diodeCount, checkboxes_.size());
-             return;
-         }*/
 
         for (size_t diode = 0; diode < diodeCount; ++diode) {
             std::string label = diodeCurrentLabels_[diode];
@@ -370,6 +401,33 @@ void GraphPlotting::render(wxDC& dc) {
             }
         }
     }
+
+
+    // Plot the sensor values
+    if (!sensorData_.empty()) {
+        size_t sensorCount = sensorData_.front().size();  // Number of sensors
+        for (size_t sensor = 0; sensor < sensorCount; ++sensor) {
+            std::string label = sensorLabels_[sensor];  // Sensor label
+
+            if (sensor >= checkboxes_.size()) continue;  // Safety check
+            if (!checkboxes_[sensor]->IsChecked()) continue;  // Skip unchecked sensors
+
+            dc.SetPen(wxPen(wxColour(0, 255, 255), 2));  // Cyan for sensor readings
+            for (size_t i = 1; i < sensorData_.size(); ++i) {
+                if (sensor < sensorData_[i - 1].size() && sensor < sensorData_[i].size()) {
+                    int x1 = static_cast<int>((i - 1) * xStep + 50);
+                    int y1 = height - 50 - static_cast<int>((sensorData_[i - 1][sensor] - sensorMin_) * yScaleSensor);
+                    int x2 = static_cast<int>(i * xStep + 50);
+                    int y2 = height - 50 - static_cast<int>((sensorData_[i][sensor] - sensorMin_) * yScaleSensor);
+                    dc.DrawLine(x1, y1, x2, y2);  // Plot the sensor data line
+                }
+            }
+        }
+    }
+
+
+
+
 }
 
 void GraphPlotting::drawYAxisLabels(wxDC& dc, int width, int height, bool leftAxis, float maxValue, float minValue, const wxString& unit) {
