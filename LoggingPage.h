@@ -23,7 +23,7 @@ private:
 
 
 	void OnLogDataCategoryCheckboxChecked(wxCommandEvent& evt);
-	
+
 
 public:
 	LogCategoryCheckbox(shared_ptr<MainLaserControllerInterface> _lc, wxWindow* parent, shared_ptr<CustomLogger> _logger, LaserStateLogCategoryEnum _category);
@@ -44,12 +44,12 @@ public:
 	void RefreshVisibility();
 	void OnStartButtonClicked(wxCommandEvent& evt);
 	void OnCheckboxToggle(wxCommandEvent& event);
-	
-	
+
+
 private:
 
 	std::shared_ptr<CustomLogger> logger;
-    std::vector<LogCategoryCheckbox*> categoryCheckboxes;
+	std::vector<LogCategoryCheckbox*> categoryCheckboxes;
 	wxTimer logTimer;
 
 	unsigned int totalLogTimeInS = 0;
@@ -82,11 +82,11 @@ private:
 private:
 	wxTextCtrl* RealTimeTempLogTextCtrl;
 	RealTimeObserver* tempObserver;
-	
+
 	std::vector<wxCheckBox*> checkboxes_;
 
-	
-	
+
+
 
 
 
@@ -100,11 +100,11 @@ private:
 	void CreateChartPanel();
 
 	void OnSelectLogOutputFileButtonClicked(wxCommandEvent& evt);
-	
+
 	void OnResetButtonClicked(wxCommandEvent& evt);
 	void OnSaveNowButtonClicked(wxCommandEvent& evt);
 	void OnLogTimer(wxTimerEvent& evt);
-	
+
 
 
 

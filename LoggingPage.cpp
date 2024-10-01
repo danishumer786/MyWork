@@ -295,6 +295,21 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
 
 			// --------------------------------------------------------------------------------------------------------------------------------------------------------
+			// Create and add the alarm panel at the TOP of the scrolling window
+			wxPanel* alarmPanel = new wxPanel(scrolledWindow, wxID_ANY);
+			wxBoxSizer* alarmSizer = new wxBoxSizer(wxHORIZONTAL);
+
+			// Create a static text to display alarm messages
+			wxTextCtrl* alarmTextCtrl = new wxTextCtrl(alarmPanel, wxID_ANY, _("No alarms"), wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY);
+
+			// Add the text control to the alarm panel sizer
+			alarmSizer->Add(alarmTextCtrl, 1, wxEXPAND | wxALL, 5);
+			alarmPanel->SetSizer(alarmSizer);
+
+			RealTimeObserver* observer = new RealTimeObserver(RealTimeTempLogTextCtrl, alarmTextCtrl);
+			logger->addObserver(observer);
+
+			// --------------------------------------------------------------------------------------------------------------------------------------------------------
 			// ******** TEC Panel ********
 			wxPanel* tecPanel = new wxPanel(scrolledWindow, wxID_ANY);
 			wxBoxSizer* tecSizer = new wxBoxSizer(wxVERTICAL);
@@ -356,7 +371,7 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 
 			tecPanel->SetSizer(tecSizer);
 
-			// ------------------------------------------------------------------------------------------------------------------------------------------------
+			// -------------------------------------------------------------------------------------------------------------------------------------------------------
 			// ******** Diode Panel ********
 			wxPanel* diodePanel = new wxPanel(scrolledWindow, wxID_ANY);
 			wxBoxSizer* diodeSizer = new wxBoxSizer(wxVERTICAL);
@@ -442,7 +457,7 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			logger->addObserver(powerObserver);
 
 			//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-	// ******** Sensor Panel ********
+	        // ******** Sensor Panel ********
 			wxPanel* sensorPanel = new wxPanel(scrolledWindow, wxID_ANY);
 			wxBoxSizer* sensorSizer = new wxBoxSizer(wxVERTICAL);
 
@@ -487,10 +502,12 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 
 
 			// Add both TEC and Diode panels to the mainSizer
+			mainSizer->Add(alarmPanel, 0, wxEXPAND | wxALL, 5);
 			mainSizer->Add(tecPanel, 3, wxEXPAND | wxALL, 5);
 			mainSizer->Add(diodePanel, 1.2, wxEXPAND | wxALL, 5);
 			mainSizer->Add(powerPanel, 1, wxEXPAND | wxALL, 5);
 			mainSizer->Add(sensorPanel, 1.2, wxEXPAND | wxALL, 5);
+			
 
 
 			// Set the mainSizer to the scrolled window

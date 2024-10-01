@@ -17,7 +17,7 @@ GraphPlotting::GraphPlotting(wxWindow* parent, wxWindowID winid, const wxPoint& 
 
     this->SetBackgroundColour(wxColour(255, 255, 255));
     SetBackgroundStyle(wxBG_STYLE_PAINT);
-   
+
 }
 //--------------------------------------------------------------------------------------------------------------------------------------------------//
 void GraphPlotting::AddCurrentDataPoint(const std::vector<float>& currents,
@@ -65,7 +65,7 @@ void GraphPlotting::AddTemperatureDataPoint(const std::vector<float>& temperatur
     const wxString& time) {
     temperatureData_.push_back(temperatures);
     for (const auto& label : tempLabels) {
-        tempLabels_.push_back(label);  
+        tempLabels_.push_back(label);
     }
     timeData_.push_back(time);
     for (const auto& temp : temperatures) {
@@ -201,7 +201,7 @@ void GraphPlotting::render(wxDC& dc) {
     float yScaleCurrent = (height - 100) / currentRange;
     float yScaleVoltage = (height - 100) / voltageRange;
     float yScaleTemp = (height - 100) / tempRange;
-    float yScalePower= (height - 100) / powerRange;
+    float yScalePower = (height - 100) / powerRange;
     float yScaleSensor = (height - 100) / sensorRange;
 
     float xStep = static_cast<float>(width - 100) / (timeData_.size() - 1);
@@ -446,8 +446,8 @@ void GraphPlotting::drawYAxisLabels(wxDC& dc, int width, int height, bool leftAx
 
 
 void GraphPlotting::paintEvent(wxPaintEvent& evt) {
-    wxAutoBufferedPaintDC dc(this);  
-    render(dc); 
+    wxAutoBufferedPaintDC dc(this);
+    render(dc);
 }
 void GraphPlotting::OnResize(wxSizeEvent& event) {
     this->Refresh();
