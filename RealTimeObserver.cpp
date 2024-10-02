@@ -134,14 +134,14 @@ void RealTimeObserver::onDataPointLogged(std::map<std::string, std::string> data
             // Display alarm in the alarm panel (top of the graph window)
             if (alarmTextCtrl_) {
                 alarmTextCtrl_->AppendText(newAlarmText);  // Send alarm to the alarm-specific text box
-               
+
             }
         }
     }
     else {
         // If no alarms, 
         if (alarmTextCtrl_) {
-            
+
         }
     }
 }

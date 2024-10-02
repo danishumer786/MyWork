@@ -8,12 +8,12 @@
 
 class GraphPlotting : public wxPanel {
 public:
-    
+
     GraphPlotting(wxWindow* parent, wxWindowID winid, const wxPoint& pos, const wxSize& size, const std::vector<wxCheckBox*>& checkboxes);
 
-    void AddDataPoint(const std::vector<float>& currents,const std::vector<float>& voltages,const std::vector<std::string>& currentLabels, const std::vector<std::string>& voltageLabels, const wxString& time);
-    void AddCurrentDataPoint(const std::vector<float>& currents, const std::vector<std::string>& currentLabels,const wxString& time);
-    void AddVoltageDataPoint(const std::vector<float>& voltages,const std::vector<std::string>& voltageLabels,const wxString& time);
+    void AddDataPoint(const std::vector<float>& currents, const std::vector<float>& voltages, const std::vector<std::string>& currentLabels, const std::vector<std::string>& voltageLabels, const wxString& time);
+    void AddCurrentDataPoint(const std::vector<float>& currents, const std::vector<std::string>& currentLabels, const wxString& time);
+    void AddVoltageDataPoint(const std::vector<float>& voltages, const std::vector<std::string>& voltageLabels, const wxString& time);
     void AddTemperatureDataPoint(const std::vector<float>& temperatures, const std::vector<std::string>& tempLabels, const wxString& time);
     void AddDiodeCurrentDataPoint(const std::vector<float>& currents, const std::vector<std::string>& labels, const wxString& time);
     void AddPowerDataPoint(const std::vector<float>& powerReadings, const std::vector<std::string>& labels, const wxString& time);
@@ -26,14 +26,14 @@ private:
     std::vector<std::vector<float>> diodeCurrentData_;
     std::vector<std::string> diodeCurrentLabels_;
 
-    std::deque<std::vector<float>> currentData_;   
+    std::deque<std::vector<float>> currentData_;
     std::vector<std::string> currentLabels_;
 
-    std::deque<std::vector<float>> voltageData_; 
+    std::deque<std::vector<float>> voltageData_;
     std::vector<std::string> voltageLabels_;
 
-    std::deque<std::vector<float>> temperatureData_;    
-    std::vector<std::string> tempLabels_; 
+    std::deque<std::vector<float>> temperatureData_;
+    std::vector<std::string> tempLabels_;
 
     std::deque<std::vector<float>> powerData_;
     std::vector<std::string> powerLabels_;
@@ -43,9 +43,9 @@ private:
 
 
 
-    std::deque<wxString> timeData_;                     
+    std::deque<wxString> timeData_;
 
-   
+
     float currentMax_ = std::numeric_limits<float>::lowest();
     float currentMin_ = std::numeric_limits<float>::max();
     float voltageMax_ = std::numeric_limits<float>::lowest();
@@ -54,15 +54,15 @@ private:
     float tempMin_ = std::numeric_limits<float>::max();
     float diodeCurrentMax_ = std::numeric_limits<float>::lowest();
     float diodeCurrentMin_ = std::numeric_limits<float>::max();
-    float powerMax_= std::numeric_limits<float>::lowest();
-    float powerMin_= std::numeric_limits<float>::max();
+    float powerMax_ = std::numeric_limits<float>::lowest();
+    float powerMin_ = std::numeric_limits<float>::max();
     float sensorMax_ = std::numeric_limits<float>::lowest();
     float sensorMin_ = std::numeric_limits<float>::max();
 
 
     std::vector<wxCheckBox*> checkboxes_;
 
-   
+
     void paintEvent(wxPaintEvent& evt);
     void render(wxDC& dc);
     void OnResize(wxSizeEvent& event);

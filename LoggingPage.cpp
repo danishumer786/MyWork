@@ -44,7 +44,7 @@ const vector<LaserStateLogCategoryEnum> LASER_STATE_LOG_CATEGORIES_VISIBLE_TO_US
 };
 
 
-    LoggingPage::LoggingPage(shared_ptr<MainLaserControllerInterface> _lc, wxWindow* parent) :
+LoggingPage::LoggingPage(shared_ptr<MainLaserControllerInterface> _lc, wxWindow* parent) :
 	SettingsPage_Base(_lc, parent) {
 	logger = make_shared<CustomLogger>(lc);
 	CustomLogDebugOutput* logDebugOutput = new CustomLogDebugOutput();
@@ -152,10 +152,10 @@ const vector<LaserStateLogCategoryEnum> LASER_STATE_LOG_CATEGORIES_VISIBLE_TO_US
 	TotalLogTimeValue = new wxStaticText(LogControlsPanel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(50, -1), 0);
 	TotalLogTimeValue->SetFont(FONT_VERY_SMALL_SEMIBOLD);
 	LogStatRowsSizer->Add(TotalLogTimeValue, 0, wxALL, 5);
-	
 
 
-      // Real-time TextCrl to show up data of all selected Categories
+
+	// Real-time TextCrl to show up data of all selected Categories
 	wxBoxSizer* RealTimeLogSizer = new wxBoxSizer(wxVERTICAL);
 	wxStaticText* RealTimeTempLogLabel = new wxStaticText(LogControlsPanel, wxID_ANY, _("Real-Time Temperature Logs:"), wxDefaultPosition, wxDefaultSize, 0);
 	RealTimeTempLogLabel->SetFont(FONT_SMALL_SEMIBOLD);
@@ -289,14 +289,13 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 
 			// Create a new graph window
 			wxFrame* graphWindow = new wxFrame(this, wxID_ANY, _("Graph Window"), wxDefaultPosition, wxSize(1200, 600));
-			wxScrolledWindow* scrolledWindow = new wxScrolledWindow(graphWindow, wxID_ANY);
-			scrolledWindow->SetScrollRate(10, 10);  // Set the scroll rate for the window
 
+			wxPanel* mainPanel = new wxPanel(graphWindow, wxID_ANY);
 			wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
 
 			// --------------------------------------------------------------------------------------------------------------------------------------------------------
-			// Create and add the alarm panel at the TOP of the scrolling window
-			wxPanel* alarmPanel = new wxPanel(scrolledWindow, wxID_ANY);
+			// Create and add the alarm panel at the TOP of the main panel (above the scrolled window)
+			wxPanel* alarmPanel = new wxPanel(mainPanel, wxID_ANY);
 			wxBoxSizer* alarmSizer = new wxBoxSizer(wxHORIZONTAL);
 
 			// Create a static text to display alarm messages
@@ -306,8 +305,17 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			alarmSizer->Add(alarmTextCtrl, 1, wxEXPAND | wxALL, 5);
 			alarmPanel->SetSizer(alarmSizer);
 
+			// Add the alarm panel to the main panel (above the scrolled window)
+			mainSizer->Add(alarmPanel, 0, wxEXPAND | wxALL, 5);
+
 			RealTimeObserver* observer = new RealTimeObserver(RealTimeTempLogTextCtrl, alarmTextCtrl);
 			logger->addObserver(observer);
+
+			// --------------------------------------------------------------------------------------------------------------------------------------------------------
+			// Set up the scrolled window to contain graph panels
+			wxScrolledWindow* scrolledWindow = new wxScrolledWindow(mainPanel, wxID_ANY);
+			scrolledWindow->SetScrollRate(10, 10);  // Set the scroll rate for the window
+			wxBoxSizer* scrollSizer = new wxBoxSizer(wxVERTICAL);
 
 			// --------------------------------------------------------------------------------------------------------------------------------------------------------
 			// ******** TEC Panel ********
@@ -370,8 +378,9 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			logger->addObserver(tecObserver);
 
 			tecPanel->SetSizer(tecSizer);
+			scrollSizer->Add(tecPanel, 3, wxEXPAND | wxALL, 5);
 
-			// -------------------------------------------------------------------------------------------------------------------------------------------------------
+			// --------------------------------------------------------------------------------------------------------------------------------------------------------
 			// ******** Diode Panel ********
 			wxPanel* diodePanel = new wxPanel(scrolledWindow, wxID_ANY);
 			wxBoxSizer* diodeSizer = new wxBoxSizer(wxVERTICAL);
@@ -408,14 +417,14 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			diodeSizer->Add(diodePlot, 1, wxEXPAND | wxALL, 5);  // Add the diode current graph below the label
 
 			diodePanel->SetSizer(diodeSizer);
+			scrollSizer->Add(diodePanel, 1.2, wxEXPAND | wxALL, 5);
 
 			// Add observer for diode data
 			RealTimeObserver* diodeObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, diodePlot, PlotType::Diode);
 			logger->addObserver(diodeObserver);
 
 			//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-			//Working on Laser Power
-			// Add power panel to the main graph window in the LoggingPage::OnStartButtonClicked function
+			// ******** Power Panel ********
 			wxPanel* powerPanel = new wxPanel(scrolledWindow, wxID_ANY);
 			wxBoxSizer* powerSizer = new wxBoxSizer(wxVERTICAL);
 
@@ -447,17 +456,17 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 
 			// Create Power Graph Plotting
 			powerPlot = new GraphPlotting(powerPanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), powerCheckboxes);
-			//powerPlot->SetMinSize(wxSize(1000, 300));
 			powerSizer->Add(powerPlot, 1, wxEXPAND | wxALL, 5);
 
 			powerPanel->SetSizer(powerSizer);
+			scrollSizer->Add(powerPanel, 1, wxEXPAND | wxALL, 5);
 
 			// Add observer for power data
 			RealTimeObserver* powerObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, powerPlot, PlotType::Power);
 			logger->addObserver(powerObserver);
 
 			//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-	        // ******** Sensor Panel ********
+			// ******** Sensor Panel ********
 			wxPanel* sensorPanel = new wxPanel(scrolledWindow, wxID_ANY);
 			wxBoxSizer* sensorSizer = new wxBoxSizer(wxVERTICAL);
 
@@ -492,34 +501,35 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			sensorPlot->SetMinSize(wxSize(1000, 300));
 			sensorSizer->Add(sensorPlot, 1, wxEXPAND | wxALL, 5);  // Add the sensor graph below the label
 
-			// Set sizer for sensorPanel
 			sensorPanel->SetSizer(sensorSizer);
+			scrollSizer->Add(sensorPanel, 1.2, wxEXPAND | wxALL, 5);
 
 			// Add observer for sensor data
 			RealTimeObserver* sensorObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, sensorPlot, PlotType::Sensors);
 			logger->addObserver(sensorObserver);
 
+			// --------------------------------------------------------------------------------------------------------------------------------------------------------
+			// Set the scrollSizer to the scrolledWindow
+			scrolledWindow->SetSizer(scrollSizer);
+			scrolledWindow->FitInside();  // Ensure content fits inside the scrolled area
+			scrolledWindow->SetScrollRate(10, 10);
 
+			// Add the scrolledWindow to the main panel
+			mainSizer->Add(scrolledWindow, 1, wxEXPAND | wxALL, 5);
 
-			// Add both TEC and Diode panels to the mainSizer
-			mainSizer->Add(alarmPanel, 0, wxEXPAND | wxALL, 5);
-			mainSizer->Add(tecPanel, 3, wxEXPAND | wxALL, 5);
-			mainSizer->Add(diodePanel, 1.2, wxEXPAND | wxALL, 5);
-			mainSizer->Add(powerPanel, 1, wxEXPAND | wxALL, 5);
-			mainSizer->Add(sensorPanel, 1.2, wxEXPAND | wxALL, 5);
-			
+			// Set the mainSizer to the mainPanel
+			mainPanel->SetSizer(mainSizer);
+			mainPanel->FitInside();  // Ensure content fits inside the main panel
 
-
-			// Set the mainSizer to the scrolled window
-			scrolledWindow->SetSizer(mainSizer);
-			scrolledWindow->FitInside();
-
+			// Show the graph window
 			graphWindow->Show();
 
 			RefreshControlsEnabled();
 			LOG_ACTION()
-		}
+	}
 }
+
+
 /*
 			// Create the graphing window using the new class
 			GraphingWork graphingWork(this, logger, RealTimeTempLogTextCtrl, lc);

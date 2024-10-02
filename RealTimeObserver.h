@@ -50,4 +50,5 @@ private:
     GraphPlotting* diodePlot_ = nullptr;
     GraphPlotting* powerPlot_ = nullptr;  // Added powerPlot for handling power data plotting
     GraphPlotting* sensorPlot_ = nullptr;
+    //bool& alarmFlag_;
 };
