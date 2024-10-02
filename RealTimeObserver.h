@@ -16,7 +16,7 @@ public:
         : textCtrl_(textCtrl), currentPlot_(currentPlot), voltagePlot_(voltagePlot), tempPlot_(tempPlot) {}
 
     RealTimeObserver(wxTextCtrl* textCtrl, wxTextCtrl* alarmTextCtrl = nullptr)
-        : textCtrl_(textCtrl), alarmTextCtrl_(alarmTextCtrl) {}
+        : textCtrl_(textCtrl), alarmTextCtrl_(alarmTextCtrl), alarmTriggered_(false) {}
 
     // Constructor for Diode, Power, and Sensor plots
     RealTimeObserver(wxTextCtrl* textCtrl, GraphPlotting* plot, PlotType plotType)
@@ -36,6 +36,9 @@ public:
     void SetAlarmTextCtrl(wxTextCtrl* alarmTextCtrl) {
         alarmTextCtrl_ = alarmTextCtrl;
     }
+    bool IsAlarmTriggered() const {
+        return alarmTriggered_;
+    }
 
     // Method to handle new data points
     void onDataPointLogged(std::map<std::string, std::string> data) override;
@@ -50,5 +53,8 @@ private:
     GraphPlotting* diodePlot_ = nullptr;
     GraphPlotting* powerPlot_ = nullptr;  // Added powerPlot for handling power data plotting
     GraphPlotting* sensorPlot_ = nullptr;
+    bool alarmTriggered_;
     //bool& alarmFlag_;
+
+
 };

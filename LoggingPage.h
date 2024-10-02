@@ -2,6 +2,7 @@
 
 #include <map>
 #include "wx/wx.h"
+#include <wx/overlay.h>
 
 #include "SettingsPage_Base.h"
 #include "Loggers/CustomLogger.h"
@@ -78,21 +79,13 @@ private:
 	wxButton* ResetLogButton;
 	wxButton* SaveLogNowButton;
 	wxCheckBox* checkboxes;
+	 
 
 private:
 	wxTextCtrl* RealTimeTempLogTextCtrl;
 	RealTimeObserver* tempObserver;
 
 	std::vector<wxCheckBox*> checkboxes_;
-
-
-
-
-
-
-
-
-
 
 	void InitCategoryCheckboxes();
 
@@ -104,12 +97,6 @@ private:
 	void OnResetButtonClicked(wxCommandEvent& evt);
 	void OnSaveNowButtonClicked(wxCommandEvent& evt);
 	void OnLogTimer(wxTimerEvent& evt);
-
-
-
-
-
-
 
 };
 

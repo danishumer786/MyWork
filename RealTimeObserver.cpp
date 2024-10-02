@@ -89,6 +89,7 @@ void RealTimeObserver::onDataPointLogged(std::map<std::string, std::string> data
                 if (!entry.second.empty()) {
                     alarms.push_back(entry.second);  // Store the alarm message
                     alarmDataFound = true;
+                    alarmTriggered_ = true;
                 }
             }
         }
@@ -127,21 +128,13 @@ void RealTimeObserver::onDataPointLogged(std::map<std::string, std::string> data
     if (alarmDataFound) {
         for (const std::string& alarmMessage : alarms) {
             wxString newAlarmText = wxString::Format("Alarm triggered at %s: %s\n", currentTime, alarmMessage);
-
-            // Display alarm in the general text box
             textCtrl_->AppendText(newAlarmText);
-
-            // Display alarm in the alarm panel (top of the graph window)
             if (alarmTextCtrl_) {
-                alarmTextCtrl_->AppendText(newAlarmText);  // Send alarm to the alarm-specific text box
-
+                alarmTextCtrl_->AppendText(newAlarmText);
             }
         }
     }
     else {
-        // If no alarms, 
-        if (alarmTextCtrl_) {
-
-        }
+        alarmTriggered_ = false; // Reset alarm flag if no alarms
     }
 }
