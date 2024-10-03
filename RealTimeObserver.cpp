@@ -89,6 +89,8 @@ void RealTimeObserver::onDataPointLogged(std::map<std::string, std::string> data
                 if (!entry.second.empty()) {
                     alarms.push_back(entry.second);  // Store the alarm message
                     alarmDataFound = true;
+                    alarmMessage_ = wxString::FromUTF8(entry.second);  // Store alarm message
+                    alarmTime_ = currentTime;  // Store alarm time
                     alarmTriggered_ = true;
                 }
             }
@@ -133,8 +135,24 @@ void RealTimeObserver::onDataPointLogged(std::map<std::string, std::string> data
                 alarmTextCtrl_->AppendText(newAlarmText);
             }
         }
+
+        // Notify the graph plotting classes about the alarm
+        if (currentPlot_) currentPlot_->SetAlarmTriggered(true, wxString(alarmMessage_), currentTime);
+        if (voltagePlot_) voltagePlot_->SetAlarmTriggered(true, wxString(alarmMessage_), currentTime);
+        if (tempPlot_) tempPlot_->SetAlarmTriggered(true, wxString(alarmMessage_), currentTime);
+        if (diodePlot_) diodePlot_->SetAlarmTriggered(true, wxString(alarmMessage_), currentTime);
+        if (powerPlot_) powerPlot_->SetAlarmTriggered(true, wxString(alarmMessage_), currentTime);
+        if (sensorPlot_) sensorPlot_->SetAlarmTriggered(true, wxString(alarmMessage_), currentTime);
     }
     else {
-        alarmTriggered_ = false; // Reset alarm flag if no alarms
+        // Reset the alarm triggered state in the graph plots
+        if (currentPlot_) currentPlot_->SetAlarmTriggered(false);
+        if (voltagePlot_) voltagePlot_->SetAlarmTriggered(false);
+        if (tempPlot_) tempPlot_->SetAlarmTriggered(false);
+        if (diodePlot_) diodePlot_->SetAlarmTriggered(false);
+        if (powerPlot_) powerPlot_->SetAlarmTriggered(false);
+        if (sensorPlot_) sensorPlot_->SetAlarmTriggered(false);
     }
+
+
 }

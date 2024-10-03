@@ -42,7 +42,8 @@ public:
 
     // Method to handle new data points
     void onDataPointLogged(std::map<std::string, std::string> data) override;
-
+    wxString alarmMessage_;  // Store the alarm message
+    wxString alarmTime_;
 
 private:
     wxTextCtrl* textCtrl_;
@@ -55,6 +56,7 @@ private:
     GraphPlotting* sensorPlot_ = nullptr;
     bool alarmTriggered_;
     //bool& alarmFlag_;
+   
 
 
 };

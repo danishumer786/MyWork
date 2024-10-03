@@ -180,12 +180,14 @@ void GraphPlotting::render(wxDC& dc) {
     this->GetSize(&width, &height);
 
 
-
     if (currentData_.empty() && voltageData_.empty() && temperatureData_.empty() && diodeCurrentData_.empty() && powerData_.empty() && sensorData_.empty()) {
         //wxLogMessage("No data to plot.");
         return;
     }
     const float margin = 0.05;
+
+
+
 
     float diodeCurrentRange = (diodeCurrentMax_ - diodeCurrentMin_) == 0 ? 1 : (diodeCurrentMax_ - diodeCurrentMin_);
     //wxLogMessage("Diode Current Range: %f", diodeCurrentRange);
@@ -241,6 +243,30 @@ void GraphPlotting::render(wxDC& dc) {
         dc.DrawText(timeLabel, wxPoint(xPos - 10, height - 45));  // Draw the time label slightly below the X-axis
     }
 
+   /* if (alarmTriggered_) {
+        // You can adjust the x-position of the line to fit the alarm time or a fixed position
+        int xAlarmLine = 100;  // Example: Draw at x = 100 (you can customize this)
+        dc.SetPen(wxPen(wxColour(255, 0, 0), 2));  // Red vertical line for alarm
+        dc.DrawLine(xAlarmLine, 0, xAlarmLine, height);  // Draw from top to bottom
+    }
+
+    if (alarmTriggered_) {
+        // Calculate where the alarm line should be based on the timeData_ and xStep
+        int alarmXPosition = static_cast<int>((endIndex - 1) * xStep + 50);  // Adjust this position based on actual alarm time
+        dc.SetPen(wxPen(wxColour(255, 0, 0), 2));  // Red vertical line for alarm
+        dc.DrawLine(alarmXPosition, 50, alarmXPosition, height - 50);  // Draw vertical line within graph bounds
+    }*/
+
+    if (alarmTriggered_ && !alarmMessage_.IsEmpty()) {
+        // Draw the vertical red line at a fixed X position
+        int xAlarmLine = 100;  // Fixed position for the constant red line
+        dc.SetPen(wxPen(wxColour(255, 0, 0), 2));  // Red vertical line for alarm
+        dc.DrawLine(xAlarmLine, 50, xAlarmLine, height - 50);  // Draw the red line across the plot area
+
+        // Draw the alarm message next to the constant red line
+        wxString alarmText = wxString::Format("Alarm: %s at %s", alarmMessage_, alarmTime_);  // Display the alarm and its time
+        dc.DrawText(alarmText, wxPoint(xAlarmLine + 5, 55));  // Draw the alarm message next to the line
+    }
 
     // Draw Y-axes
     if (!temperatureData_.empty()) {
@@ -261,6 +287,7 @@ void GraphPlotting::render(wxDC& dc) {
     if (!sensorData_.empty()) {
         drawYAxisLabels(dc, width, height, false, sensorMax_, sensorMin_, "L/min");  // Flow in Liters per Minute
     }
+
 
 
 
