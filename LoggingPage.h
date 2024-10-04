@@ -22,7 +22,6 @@ private:
 	LaserStateLogCategoryEnum category = NULL_CATEGORY;
 	string categoryName;
 
-
 	void OnLogDataCategoryCheckboxChecked(wxCommandEvent& evt);
 
 

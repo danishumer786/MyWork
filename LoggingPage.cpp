@@ -293,6 +293,8 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			wxPanel* mainPanel = new wxPanel(graphWindow, wxID_ANY);
 			wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
 
+
+
 			// --------------------------------------------------------------------------------------------------------------------------------------------------------
 			// Create and add the alarm panel at the TOP of the main panel (above the scrolled window)
 			wxPanel* alarmPanel = new wxPanel(mainPanel, wxID_ANY);
@@ -312,7 +314,7 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			// --------------------------------------------------------------------------------------------------------------------------------------------------------
 			// Set up the scrolled window to contain graph panels
 			wxScrolledWindow* scrolledWindow = new wxScrolledWindow(mainPanel, wxID_ANY);
-			scrolledWindow->SetScrollRate(10, 10);  // Set the scroll rate for the window
+			scrolledWindow->SetScrollRate(10, 10);  
 			wxBoxSizer* scrollSizer = new wxBoxSizer(wxVERTICAL);
 
 			// --------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -347,30 +349,29 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			// 1. Create TEC Current label and plot
 			wxStaticText* tecCurrentLabel = new wxStaticText(tecPanel, wxID_ANY, _("TEC Current"), wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE);
 			tecCurrentLabel->SetFont(tecCurrentLabel->GetFont().Bold());
-			tecSizer->Add(tecCurrentLabel, 0, wxEXPAND | wxALL, 5);  // Add the label above the current graph
+			tecSizer->Add(tecCurrentLabel, 0, wxEXPAND | wxALL, 5);  
 
 			currentPlot = new GraphPlotting(tecPanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), tecCheckboxes);
 			currentPlot->SetMinSize(wxSize(1000, 300));
-			tecSizer->Add(currentPlot, 1, wxEXPAND | wxALL, 5);  // Add the current graph below the label
+			tecSizer->Add(currentPlot, 1, wxEXPAND | wxALL, 5);  
 
 			// 2. Create TEC Voltage label and plot
 			wxStaticText* tecVoltageLabel = new wxStaticText(tecPanel, wxID_ANY, _("TEC Voltage"), wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE);
 			tecVoltageLabel->SetFont(tecVoltageLabel->GetFont().Bold());
-			tecSizer->Add(tecVoltageLabel, 0, wxEXPAND | wxALL, 5);  // Add the label above the voltage graph
+			tecSizer->Add(tecVoltageLabel, 0, wxEXPAND | wxALL, 5);  
 
 			voltagePlot = new GraphPlotting(tecPanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), tecCheckboxes);
 			voltagePlot->SetMinSize(wxSize(1000, 300));
-			tecSizer->Add(voltagePlot, 1, wxEXPAND | wxALL, 5);  // Add the voltage graph below the label
+			tecSizer->Add(voltagePlot, 1, wxEXPAND | wxALL, 5);  
 
 			// 3. Create TEC Temperature label and plot
 			wxStaticText* tecTempLabel = new wxStaticText(tecPanel, wxID_ANY, _("TEC Temperature"), wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE);
 			tecTempLabel->SetFont(tecTempLabel->GetFont().Bold());
-			tecSizer->Add(tecTempLabel, 0, wxEXPAND | wxALL, 5);  // Add the label above the temperature graph
+			tecSizer->Add(tecTempLabel, 0, wxEXPAND | wxALL, 5);  
 
 			tempPlot = new GraphPlotting(tecPanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), tecCheckboxes);
 			tempPlot->SetMinSize(wxSize(1000, 300));
-			tecSizer->Add(tempPlot, 1, wxEXPAND | wxALL, 10);  // Add the temperature graph below the label
-
+			tecSizer->Add(tempPlot, 1, wxEXPAND | wxALL, 10); 
 			// Observer for TEC data
 			RealTimeObserver* tecObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, currentPlot, voltagePlot, tempPlot);
 			logger->addObserver(tecObserver);
@@ -387,12 +388,12 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			// Create Diode Current label and plot
 			wxStaticText* diodeCurrentLabel = new wxStaticText(diodePanel, wxID_ANY, _("Diode Current"), wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE);
 			diodeCurrentLabel->SetFont(diodeCurrentLabel->GetFont().Bold());
-			diodeSizer->Add(diodeCurrentLabel, 0, wxEXPAND | wxALL, 5);  // Add the label above the diode current graph
+			diodeSizer->Add(diodeCurrentLabel, 0, wxEXPAND | wxALL, 5); 
 
 			std::vector<wxCheckBox*> diodeCheckboxes;
 			wxBoxSizer* diodeCheckboxSizer = new wxBoxSizer(wxHORIZONTAL);
 
-			vector<int> diodeIDs = lc->GetLddIds();  // Assuming diode IDs come from GetLddIds()
+			vector<int> diodeIDs = lc->GetLddIds();  
 			GraphPlotting* diodePlot = nullptr;
 
 			// Diode Checkboxes for currents
@@ -413,7 +414,7 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			diodeSizer->Add(diodeCheckboxSizer, 0, wxEXPAND | wxALL, 5);
 
 			diodePlot = new GraphPlotting(diodePanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), diodeCheckboxes);
-			diodeSizer->Add(diodePlot, 1, wxEXPAND | wxALL, 5);  // Add the diode current graph below the label
+			diodeSizer->Add(diodePlot, 1, wxEXPAND | wxALL, 5); 
 
 			diodePanel->SetSizer(diodeSizer);
 			scrollSizer->Add(diodePanel, 1.2, wxEXPAND | wxALL, 5);
@@ -475,7 +476,7 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			// Create Chiller Flow and Humidity label and plot
 			wxStaticText* sensorLabel = new wxStaticText(sensorPanel, wxID_ANY, _("Sensors"), wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE);
 			sensorLabel->SetFont(sensorLabel->GetFont().Bold());
-			sensorSizer->Add(sensorLabel, 0, wxEXPAND | wxALL, 5);  // Add the label above the sensor graph
+			sensorSizer->Add(sensorLabel, 0, wxEXPAND | wxALL, 5);  
 
 			// Create checkboxes for Flow and Humidity
 			std::vector<wxCheckBox*> sensorCheckboxes;
@@ -506,49 +507,37 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			sensorPanel->SetSizer(sensorSizer);
 			scrollSizer->Add(sensorPanel, 1.2, wxEXPAND | wxALL, 5);
 
-			
-
 			// Add observer for sensor data
 			RealTimeObserver* sensorObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, sensorPlot, PlotType::Sensors);
 			logger->addObserver(sensorObserver);
 
 			// --------------------------------------------------------------------------------------------------------------------------------------------------------
-			// Set the scrollSizer to the scrolledWindow
+			
 			scrolledWindow->SetSizer(scrollSizer);
-			scrolledWindow->FitInside();  // Ensure content fits inside the scrolled area
+			scrolledWindow->FitInside(); 
 			scrolledWindow->SetScrollRate(10, 10);
 
-			// Add the scrolledWindow to the main panel
 			mainSizer->Add(scrolledWindow, 1, wxEXPAND | wxALL, 5);
-
-			// Set the mainSizer to the mainPanel
 			mainPanel->SetSizer(mainSizer);
-			mainPanel->FitInside();  // Ensure content fits inside the main panel
+			mainPanel->FitInside();  
 
-			// Timer to check for alarms and draw a vertical line
 			wxTimer* alarmCheckTimer = new wxTimer(this);
 			Bind(wxEVT_TIMER, [&, mainPanel, observer](wxTimerEvent&) {
 				if (observer->IsAlarmTriggered()) {
 					wxClientDC dc(mainPanel);
-					dc.SetPen(wxPen(wxColour(255, 0, 0), 2));  // Red vertical line
-					dc.DrawLine(100, 0, 100, mainPanel->GetSize().GetHeight());  // Draw the line across the height of the main panel
+					dc.SetPen(wxPen(wxColour(255, 0, 0), 2));  
+					dc.DrawLine(100, 0, 100, mainPanel->GetSize().GetHeight());  
 				}
 				}, alarmCheckTimer->GetId());
 			alarmCheckTimer->Start(1000);
 
-			// Show the graph window
+		
 			graphWindow->Show();
 
 			RefreshControlsEnabled();
 			LOG_ACTION()
 		}
 }
-
-/*
-			// Create the graphing window using the new class
-			GraphingWork graphingWork(this, logger, RealTimeTempLogTextCtrl, lc);
-			graphingWork.CreateGraphWindow();  // Create the graph window and setup the graph*/
-
 
 void LoggingPage::OnResetButtonClicked(wxCommandEvent& evt) {
 	STAGE_ACTION("Reset log button clicked")
@@ -585,14 +574,9 @@ void LoggingPage::OnSaveNowButtonClicked(wxCommandEvent& evt) {
 
 void LoggingPage::OnLogTimer(wxTimerEvent& event) {
 	totalLogTimeInS++;
-	//wxLogMessage("Log Timer triggered");
-	// Your timer handling code here
 }
 
 
-// Refresh whether widgets are enabled or disabled based on whether logger is
-// logging and whether it has already logged data points. Only called after
-// certain actions to prevent constant flickering.
 void LoggingPage::RefreshControlsEnabled() {
 	bool isLogging = logger->IsLogging();
 	bool hasLoggedDataPoints = logger->GetTotalLoggedDataPoints() > 0;

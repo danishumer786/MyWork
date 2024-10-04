@@ -6,9 +6,9 @@ void RealTimeObserver::onDataPointLogged(std::map<std::string, std::string> data
     textCtrl_->AppendText("Received Data:\n");
     wxString currentTime = wxDateTime::Now().Format("%H:%M:%S");
 
-    std::vector<std::string> alarms;  // For storing alarm messages
+    std::vector<std::string> alarms; 
 
-    // Separate data containers for TEC, Diode, Power, and Sensors
+    
     std::vector<float> currents;
     std::vector<float> voltages;
     std::vector<float> temperatures;
@@ -83,15 +83,23 @@ void RealTimeObserver::onDataPointLogged(std::map<std::string, std::string> data
                 sensorReadings.push_back(sensorValue);
                 sensorLabels.push_back(label);
                 sensorDataFound = true;
-            }
+            } 
+
             // Handle Alarms
-            else if (entry.first.find("Alarms") != std::string::npos) {
+           else if (entry.first.find("Alarms") != std::string::npos) {
                 if (!entry.second.empty()) {
-                    alarms.push_back(entry.second);  // Store the alarm message
-                    alarmDataFound = true;
-                    alarmMessage_ = wxString::FromUTF8(entry.second);  // Store alarm message
-                    alarmTime_ = currentTime;  // Store alarm time
-                    alarmTriggered_ = true;
+                    wxString newAlarmMessage = wxString::FromUTF8(entry.second); 
+                    wxString newAlarmTime = currentTime;  
+                    
+                    if (newAlarmMessage != lastAlarmMessage_ && newAlarmTime != lastAlarmTime_) {
+                        alarms.push_back(entry.second); 
+                        alarmDataFound = true;
+                        alarmMessage_ = newAlarmMessage;  
+                        alarmTime_ = newAlarmTime;  
+                        alarmTriggered_ = true;
+                        lastAlarmMessage_ = newAlarmMessage;
+                        lastAlarmTime_ = newAlarmTime;
+                    }
                 }
             }
         }
@@ -126,8 +134,10 @@ void RealTimeObserver::onDataPointLogged(std::map<std::string, std::string> data
         sensorPlot_->AddSensorDataPoint(sensorReadings, sensorLabels, currentTime);
     }
 
-    // Display alarms (after the loop)
+    
     if (alarmDataFound) {
+        alarmTriggered_ = true;  
+
         for (const std::string& alarmMessage : alarms) {
             wxString newAlarmText = wxString::Format("Alarm triggered at %s: %s\n", currentTime, alarmMessage);
             textCtrl_->AppendText(newAlarmText);
@@ -136,23 +146,20 @@ void RealTimeObserver::onDataPointLogged(std::map<std::string, std::string> data
             }
         }
 
-        // Notify the graph plotting classes about the alarm
-        if (currentPlot_) currentPlot_->SetAlarmTriggered(true, wxString(alarmMessage_), currentTime);
-        if (voltagePlot_) voltagePlot_->SetAlarmTriggered(true, wxString(alarmMessage_), currentTime);
-        if (tempPlot_) tempPlot_->SetAlarmTriggered(true, wxString(alarmMessage_), currentTime);
-        if (diodePlot_) diodePlot_->SetAlarmTriggered(true, wxString(alarmMessage_), currentTime);
-        if (powerPlot_) powerPlot_->SetAlarmTriggered(true, wxString(alarmMessage_), currentTime);
-        if (sensorPlot_) sensorPlot_->SetAlarmTriggered(true, wxString(alarmMessage_), currentTime);
-    }
-    else {
-        // Reset the alarm triggered state in the graph plots
-        if (currentPlot_) currentPlot_->SetAlarmTriggered(false);
-        if (voltagePlot_) voltagePlot_->SetAlarmTriggered(false);
-        if (tempPlot_) tempPlot_->SetAlarmTriggered(false);
-        if (diodePlot_) diodePlot_->SetAlarmTriggered(false);
-        if (powerPlot_) powerPlot_->SetAlarmTriggered(false);
-        if (sensorPlot_) sensorPlot_->SetAlarmTriggered(false);
+        if (currentPlot_) currentPlot_->SetAlarmTriggered(true, wxString::FromUTF8(alarmMessage_), currentTime);
+        if (voltagePlot_) voltagePlot_->SetAlarmTriggered(true, wxString::FromUTF8(alarmMessage_), currentTime);
+        if (tempPlot_) tempPlot_->SetAlarmTriggered(true, wxString::FromUTF8(alarmMessage_), currentTime);
+        if (diodePlot_) diodePlot_->SetAlarmTriggered(true, wxString::FromUTF8(alarmMessage_), currentTime);
+        if (powerPlot_) powerPlot_->SetAlarmTriggered(true, wxString::FromUTF8(alarmMessage_), currentTime);
+        if (sensorPlot_) sensorPlot_->SetAlarmTriggered(true, wxString::FromUTF8(alarmMessage_), currentTime);
+
+           
+        
     }
 
+    
 
 }
+    
+    
+

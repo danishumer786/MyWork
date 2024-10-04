@@ -6,7 +6,7 @@
 #include <vector>
 
 // Enum to differentiate between different plot types
-enum class PlotType { Diode, Power, TEC, Sensors };  // Add Sensors to the enum
+enum class PlotType { Diode, Power, TEC, Sensors };  
 
 
 class RealTimeObserver : public LogObserver {
@@ -21,7 +21,7 @@ public:
     // Constructor for Diode, Power, and Sensor plots
     RealTimeObserver(wxTextCtrl* textCtrl, GraphPlotting* plot, PlotType plotType)
         : textCtrl_(textCtrl) {
-        // Determine which plot to assign based on the PlotType enum
+       
         if (plotType == PlotType::Diode) {
             diodePlot_ = plot;
         }
@@ -29,7 +29,7 @@ public:
             powerPlot_ = plot;
         }
         else if (plotType == PlotType::Sensors) {
-            sensorPlot_ = plot;  // Assign the sensor plot
+            sensorPlot_ = plot; 
         }
     }
     // Method to set the alarm text control (from the graph window)
@@ -42,20 +42,22 @@ public:
 
     // Method to handle new data points
     void onDataPointLogged(std::map<std::string, std::string> data) override;
-    wxString alarmMessage_;  // Store the alarm message
-    wxString alarmTime_;
-
+    
 private:
+    wxString alarmMessage_; 
+    wxString alarmTime_;
+    wxString lastAlarmMessage_;
+    wxString lastAlarmTime_;
     wxTextCtrl* textCtrl_;
     wxTextCtrl* alarmTextCtrl_;
     GraphPlotting* currentPlot_ = nullptr;
     GraphPlotting* voltagePlot_ = nullptr;
     GraphPlotting* tempPlot_ = nullptr;
     GraphPlotting* diodePlot_ = nullptr;
-    GraphPlotting* powerPlot_ = nullptr;  // Added powerPlot for handling power data plotting
+    GraphPlotting* powerPlot_ = nullptr;  
     GraphPlotting* sensorPlot_ = nullptr;
     bool alarmTriggered_;
-    //bool& alarmFlag_;
+   
    
 
 

@@ -20,26 +20,29 @@ public:
     void AddSensorDataPoint(const std::vector<float>& sensorReadings, const std::vector<std::string>& labels, const wxString& time);
     void RefreshGraph();
 
-   
+
 
     void SetAlarmTriggered(bool alarmTriggered, const wxString& alarmMessage = "", const wxString& alarmTime = "") {
+        
         alarmTriggered_ = alarmTriggered;
-        if (alarmTriggered) {
-            alarmMessage_ = alarmMessage;  // Store the alarm message
-            alarmTime_ = alarmTime;        // Store the alarm time
+
+        
+        if (alarmTriggered_ && !alarmMessage.IsEmpty() && !alarmTime.IsEmpty()) {
+            alarmMessage_ = alarmMessage;
+            alarmTime_ = alarmTime;
         }
-        else {
-            alarmMessage_.Clear();
-            alarmTime_.Clear();
-        }
+
+       
+        RefreshGraph();
     }
 
 
 private:
     bool alarmTriggered_ = false;
 
-    wxString alarmMessage_;  // Store the alarm message
+    wxString alarmMessage_;
     wxString alarmTime_;
+    
 
     static constexpr int maxDataPoints_ = 1000;
 
