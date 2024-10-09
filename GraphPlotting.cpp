@@ -183,7 +183,7 @@ void GraphPlotting::render(wxDC& dc) {
 
     // Ensure totalDurationInSeconds is not zero
     if (totalDurationInSeconds <= 0) {
-       // wxLogError("Total duration in seconds is zero, check your time range.");
+        // wxLogError("Total duration in seconds is zero, check your time range.");
         return;
     }
 
@@ -210,7 +210,7 @@ void GraphPlotting::render(wxDC& dc) {
     //float xStep = static_cast<float>(width - 100) / (timeData_.size() - 1);
 
     // Define a color palette for different TECs
-    std::vector<wxColour> tecColors = { wxColour(255, 0, 0), wxColour(0, 255, 0), wxColour(0, 0, 255), wxColour(255, 255, 0), wxColour(255, 0, 255), wxColour(0, 255, 255) };
+    std::vector<wxColour> tecColors = { wxColour(0, 0, 255),wxColour(255, 165, 0), wxColour(0, 0, 255), wxColour(255, 255, 0), wxColour(255, 0, 255), wxColour(0, 255, 255) };
     size_t tecColorsSize = tecColors.size();
 
     dc.SetPen(wxPen(*wxBLACK, 2));
@@ -237,32 +237,44 @@ void GraphPlotting::render(wxDC& dc) {
         currentTime.Add(wxTimeSpan::Seconds(labelInterval));  // Increment time by the interval
     }
     // Alarm handling
-    if (alarmTriggered_ && !alarmMessage_.IsEmpty()) {
-        wxDateTime alarmDateTime;
-        if (!alarmDateTime.ParseFormat(alarmTime_, "%H:%M:%S")) {
-            wxLogError("Failed to parse alarm time: %s", alarmTime_);
-        }
+    if (!alarmMessages_.empty() && !alarmTimes_.empty()) {
+        for (size_t i = 0; i < alarmMessages_.size(); ++i) {
+            wxDateTime alarmDateTime;
+            if (!alarmDateTime.ParseFormat(alarmTimes_[i], "%H:%M:%S")) {
+                wxLogError("Failed to parse alarm time: %s", alarmTimes_[i]);
+                continue;
+            }
 
-        // Calculate the x position for the alarm line
-        wxTimeSpan timeSinceStart = alarmDateTime.Subtract(startTime);
-        long secondsSinceStart = timeSinceStart.GetSeconds().ToLong();
-
-        // Ensure the alarm is within the plotting range
-        if (secondsSinceStart >= 0 && secondsSinceStart <= totalDurationInSeconds) {
+            // Calculate the x position for the alarm line
+            wxTimeSpan timeSinceStart = alarmDateTime.Subtract(startTime);
+            long secondsSinceStart = timeSinceStart.GetSeconds().ToLong();
             int alarmXPosition = static_cast<int>(secondsSinceStart * xStep + 50);
 
-            // Draw the red line at the alarm time
-            dc.SetPen(wxPen(wxColour(255, 0, 0), 2));
-            dc.DrawLine(alarmXPosition, 50, alarmXPosition, height - 50);
+            // Check if alarmXPosition is within the graph bounds
+            if (alarmXPosition >= 50 && alarmXPosition <= width - 50) {
+                // Set up the darker red dashed pen for the alarm line
+                wxPen darkRedPen(wxColour(139, 0, 0), 2, wxPENSTYLE_SHORT_DASH);
+                dc.SetPen(darkRedPen);
 
-            // Draw the alarm message
-            wxString alarmText = wxString::Format("Alarm: %s at %s", alarmMessage_, alarmTime_);
-            dc.DrawText(alarmText, wxPoint(alarmXPosition + 5, 55));
-        }
-        else {
-            wxLogError("Alarm time is outside the plotting range.");
+                // Draw the red dashed line at the alarm time
+                dc.DrawLine(alarmXPosition, 50, alarmXPosition, height - 50);
+
+                // Draw a gradient effect to highlight the error
+                wxColour startColour(255, 69, 0);  // Lighter orange-red
+                wxColour endColour(139, 0, 0);     // Darker red
+                wxBrush gradientBrush(wxColour(255, 0, 0, 128));  // Semi-transparent red
+                dc.SetBrush(gradientBrush);
+                dc.GradientFillLinear(wxRect(alarmXPosition - 5, 50, 10, height - 100), startColour, endColour, wxSOUTH);
+
+                // Draw the alarm message next to the line
+                wxString alarmText = wxString::Format("Alarm: %s at %s", alarmMessages_[i], alarmTimes_[i]);
+                dc.SetTextForeground(wxColour(139, 0, 0));  // Dark red text color for alarm message
+                dc.DrawText(alarmText, wxPoint(alarmXPosition + 5, 55));
+            }
         }
     }
+
+
     // Draw Y-axes
     if (!temperatureData_.empty()) {
         drawYAxisLabels(dc, width, height, true, tempMax_, tempMin_, "°C");
@@ -491,72 +503,71 @@ void GraphPlotting::render(wxDC& dc) {
 
 
     if (!diodeCurrentData_.empty()) {
-        size_t tecCount = diodeCurrentData_.size();  // Number of Diodes
+        size_t diodeCount = diodeCurrentData_.size();  // Number of Diodes
 
-        for (size_t tec = 0; tec < tecCount; ++tec) {
-            std::string label = diodeCurrentLabels_[tec];
 
-            if (tecCount > checkboxes_.size()) return;  // Safety check
-            if (!checkboxes_[tec]->IsChecked()) continue;  // Skip unchecked diodes
+        for (size_t diode = 0; diode < diodeCount; ++diode) {
 
-            wxColour penColor = tecColors[tec % tecColorsSize];  // Cycle through the color palette
+            std::string label = diodeCurrentLabels_[diode];
+
+            if (diodeCount > checkboxes_.size()) return;  // Safety check
+            if (!checkboxes_[diode]->IsChecked()) continue;  // Skip unchecked diodes
+
+            wxColour penColor = tecColors[diode % tecColorsSize];  // Cycle through the color palette
             dc.SetPen(wxPen(penColor, 3));  // Set the color for the Diode plot
 
-            float tecMin = std::numeric_limits<float>::max();
-            float tecMax = std::numeric_limits<float>::min();
+            float diodeMin = std::numeric_limits<float>::max();
+            float diodeMax = std::numeric_limits<float>::min();
             float sumDiodeCurrent = 0.0;
             size_t validDataPoints = 0;
 
+            for (size_t i = 1; i < diodeCurrentData_[diode].size(); ++i) {
+                if (i < diodeCurrentData_[diode].size()){
+                    float diodeCurrentValue = diodeCurrentData_[diode][i];
+                    diodeMin = std::min(diodeMin, diodeCurrentValue);
+                    diodeMax = std::max(diodeMax, diodeCurrentValue);
+                    sumDiodeCurrent += diodeCurrentValue;
+                    validDataPoints++;
 
+                    wxDateTime time1, time2;
+                    if (time1.ParseFormat(timeData_[i - 1], "%H:%M:%S") && time2.ParseFormat(timeData_[i], "%H:%M:%S")) {
+                        wxTimeSpan diff1 = time1.Subtract(startTime);
+                        wxTimeSpan diff2 = time2.Subtract(startTime);
 
-            for (size_t i = 1; i < diodeCurrentData_.size(); ++i) {
-                if (tec < diodeCurrentData_[i - 1].size() && tec < diodeCurrentData_[i].size()) {
-                    float diodeCurrentValue = diodeCurrentData_[i][tec];  // Ensure this is accessing the correct data
-                    tecMin = std::min(tecMin, diodeCurrentValue);  // Update min
-                    tecMax = std::max(tecMax, diodeCurrentValue);  // Update max
-                    sumDiodeCurrent += diodeCurrentValue;  // Add to sum for mean calculation
-                    validDataPoints++;  // Count valid data points
+                        long seconds1 = diff1.GetSeconds().ToLong();
+                        long seconds2 = diff2.GetSeconds().ToLong();
 
-                    // Calculate X positions for the line
-                    long timeSinceStart = (i - 1) * (totalDurationInSeconds / diodeCurrentData_.size());
-                    int x1 = static_cast<int>((timeSinceStart * xStep) + 50);
-                    int y1 = height - 50 - static_cast<int>((diodeCurrentData_[tec][i - 1] - diodeCurrentMin_) * yScaleDiodeCurrent);
+                        int x1 = static_cast<int>((seconds1 * xStep) + 50);
+                        int y1 = height - 50 - static_cast<int>((diodeCurrentData_[diode][i - 1] - diodeCurrentMin_) * yScaleDiodeCurrent);
 
-                    timeSinceStart = i * (totalDurationInSeconds / diodeCurrentData_.size());
-                    int x2 = static_cast<int>((timeSinceStart * xStep) + 50);
-                    int y2 = height - 50 - static_cast<int>((diodeCurrentData_[tec][i] - diodeCurrentMin_) * yScaleDiodeCurrent);
+                        int x2 = static_cast<int>((seconds2 * xStep) + 50);
+                        int y2 = height - 50 - static_cast<int>((diodeCurrentData_[diode][i] - diodeCurrentMin_) * yScaleDiodeCurrent);
 
-                    // Draw the current line for the diode
-                    dc.DrawLine(x1, y1, x2, y2);
+                        // Draw the current line for the TEC
+                        dc.DrawLine(x1, y1, x2, y2);
+                    }
                 }
+
             }
 
             // Mean and standard deviation
-            float tecMean = validDataPoints > 0 ? sumDiodeCurrent / validDataPoints : 0.0;
+            float diodeMean = validDataPoints > 0 ? sumDiodeCurrent / validDataPoints : 0.0;
             float variance = 0.0;
-            for (size_t i = 1; i < diodeCurrentData_.size(); ++i) {
-                if (tec < diodeCurrentData_[i].size()) {
-
-                    float diodeCurrentValue = diodeCurrentData_[tec][i];
-                    variance += std::pow(diodeCurrentValue - tecMean, 2);
-                }
+            for (size_t i = 1; i < diodeCurrentData_[diode].size(); ++i) {
+                float diodeCurrentValue = diodeCurrentData_[diode][i];
+                variance += std::pow(diodeCurrentValue - diodeMean, 2);
             }
-            float tecStdDev = validDataPoints > 1 ? std::sqrt(variance / (validDataPoints - 1)) : 0.0;
+            float diodeStdDev = validDataPoints > 1 ? std::sqrt(variance / (validDataPoints - 1)) : 0.0;
 
-            wxString tecLabel = wxString::Format("%s (Min: %.2f, Max: %.2f, Mean: %.2f, Standard Deviation: %.2f)",
-                label, tecMin, tecMax, tecMean, tecStdDev);
-            int xLegendPos = 50 + (tec * 380);
+            wxString diodeLabel = wxString::Format("%s (Min: %.2f, Max: %.2f, μ: %.2f, σ: %.2f)",
+                label, diodeMin, diodeMax, diodeMean, diodeStdDev);
+            int xLegendPos = 60 + (diode * 250);
             dc.SetPen(wxPen(penColor, 3));
-            dc.DrawLine(xLegendPos, height - 20, xLegendPos + 30, height - 20);
-            dc.DrawText(tecLabel, wxPoint(xLegendPos + 40, height - 30));
+            dc.DrawLine(xLegendPos, height - 30, xLegendPos + 30, height - 30);
+            dc.DrawText(diodeLabel, wxPoint(xLegendPos + 35, height - 35));
         }
+
     }
-
-
-
-
-
-
 
     // Plot the power values
     if (!powerData_.empty()) {
@@ -651,17 +662,23 @@ void GraphPlotting::render(wxDC& dc) {
                     sumSensor += sensorValue;  // Add to sum for mean calculation
                     validDataPoints++;  // Count valid data points
 
-                    // Calculate X positions for the line
-                    long timeSinceStart = (i - 1) * (totalDurationInSeconds / sensorData_.size());
-                    int x1 = static_cast<int>((timeSinceStart * xStep) + 50);
-                    int y1 = height - 50 - static_cast<int>((sensorData_[i - 1][tec] - sensorMin_) * yScaleSensor);
+                    wxDateTime time1, time2;
+                    if (time1.ParseFormat(timeData_[i - 1], "%H:%M:%S") && time2.ParseFormat(timeData_[i], "%H:%M:%S")) {
+                        wxTimeSpan diff1 = time1.Subtract(startTime);
+                        wxTimeSpan diff2 = time2.Subtract(startTime);
 
-                    timeSinceStart = i * (totalDurationInSeconds / sensorData_.size());
-                    int x2 = static_cast<int>((timeSinceStart * xStep) + 50);
-                    int y2 = height - 50 - static_cast<int>((sensorData_[i][tec] - sensorMin_) * yScaleSensor);
+                        long seconds1 = diff1.GetSeconds().ToLong();
+                        long seconds2 = diff2.GetSeconds().ToLong();
 
-                    // Draw the sensor line for the TEC
-                    dc.DrawLine(x1, y1, x2, y2);
+                        int x1 = static_cast<int>((seconds1 * xStep) + 50);
+                        int y1 = height - 50 - static_cast<int>((sensorData_[i - 1][tec] - sensorMin_) * yScaleSensor);
+
+                        int x2 = static_cast<int>((seconds2 * xStep) + 50);
+                        int y2 = height - 50 - static_cast<int>((sensorData_[i][tec] - sensorMin_) * yScaleSensor);
+
+                        // Draw the current line for the TEC
+                        dc.DrawLine(x1, y1, x2, y2);
+                    }
                 }
             }
 

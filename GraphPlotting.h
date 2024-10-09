@@ -23,25 +23,24 @@ public:
 
 
     void SetAlarmTriggered(bool alarmTriggered, const wxString& alarmMessage = "", const wxString& alarmTime = "") {
-        
         alarmTriggered_ = alarmTriggered;
 
-        
         if (alarmTriggered_ && !alarmMessage.IsEmpty() && !alarmTime.IsEmpty()) {
-            alarmMessage_ = alarmMessage;
-            alarmTime_ = alarmTime;
+            alarmMessages_.push_back(alarmMessage);
+            alarmTimes_.push_back(alarmTime);
         }
 
-       
-        RefreshGraph();
+        RefreshGraph();  // Refresh the graph with all the alarm lines
     }
+
 
 
 private:
     bool alarmTriggered_ = false;
 
-    wxString alarmMessage_;
-    wxString alarmTime_;
+    std::vector<wxString> alarmMessages_;
+    std::vector<wxString> alarmTimes_;
+
     
 
     static constexpr int maxDataPoints_ = 1000;
