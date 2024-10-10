@@ -333,6 +333,7 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			for (int id : tecIDs) {
 				std::string label = lc->GetTemperatureControlLabel(id);
 				wxCheckBox* tecCheckBox = new wxCheckBox(tecPanel, wxID_ANY, label, wxDefaultPosition, wxDefaultSize);
+				tecCheckBox->SetValue(true);
 
 				tecCheckBox->Bind(wxEVT_CHECKBOX, [&, currentPlot, voltagePlot, tempPlot](wxCommandEvent& event) {
 					if (currentPlot) { currentPlot->RefreshGraph(); }
@@ -400,6 +401,7 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			for (int id : diodeIDs) {
 				std::string diodeLabel = lc->GetLDDLabel(id);
 				wxCheckBox* diodeCheckBox = new wxCheckBox(diodePanel, wxID_ANY, diodeLabel, wxDefaultPosition, wxDefaultSize);
+				diodeCheckBox->SetValue(true);
 
 				diodeCheckBox->Bind(wxEVT_CHECKBOX, [&, diodePlot](wxCommandEvent& event) {
 					if (diodePlot) {
@@ -443,6 +445,7 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			for (int id : powerMonitorIDs) {
 				std::string label = lc->GetPowerMonitorLabel(id);
 				wxCheckBox* powerCheckBox = new wxCheckBox(powerPanel, wxID_ANY, label, wxDefaultPosition, wxDefaultSize);
+				powerCheckBox->SetValue(true);
 
 				powerCheckBox->Bind(wxEVT_CHECKBOX, [&, powerPlot](wxCommandEvent& event) {
 					if (powerPlot) {
@@ -484,6 +487,7 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 
 			if (lc->ChillerFlowIsEnabledForUse()) {
 				wxCheckBox* flowCheckbox = new wxCheckBox(sensorPanel, wxID_ANY, "Chiller Flow", wxDefaultPosition, wxDefaultSize);
+				flowCheckbox->SetValue(true);
 				sensorCheckboxes.push_back(flowCheckbox);
 				sensorCheckboxSizer->Add(flowCheckbox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 			}
@@ -492,6 +496,7 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			for (int id : humidityIds) {
 				std::string humidityLabel = lc->GetHumidityLabel(id);
 				wxCheckBox* humidityCheckbox = new wxCheckBox(sensorPanel, wxID_ANY, humidityLabel, wxDefaultPosition, wxDefaultSize);
+				humidityCheckbox->SetValue(true);
 				sensorCheckboxes.push_back(humidityCheckbox);
 				sensorCheckboxSizer->Add(humidityCheckbox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 			}

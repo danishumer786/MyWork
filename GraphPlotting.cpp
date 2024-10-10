@@ -346,6 +346,24 @@ void GraphPlotting::render(wxDC& dc) {
                 }
             }
 
+            // Display the latest value at the right end of the TEC plot
+            if (!currentData_.empty() && tec < currentData_.back().size()) {
+                float latestValue = currentData_.back()[tec];
+
+                wxDateTime endTime;
+                if (endTime.ParseFormat(timeData_.back(), "%H:%M:%S")) {
+                    wxTimeSpan endDiff = endTime.Subtract(startTime);
+                    long endSeconds = endDiff.GetSeconds().ToLong();
+                    int xEnd = static_cast<int>((endSeconds * xStep) + 50);
+                    int yEnd = height - 50 - static_cast<int>((latestValue - currentMin_) * yScaleCurrent);
+
+                    // Draw the current value at the end of the line
+                    wxString currentValueLabel = wxString::Format("%.2f", latestValue);
+                    dc.SetFont(wxFont(8, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL));
+                    dc.DrawText(currentValueLabel, wxPoint(xEnd + 5, yEnd - 10));
+                }
+            }
+
             // Calculate the mean value
             float tecMean = validDataPoints > 0 ? sumCurrent / validDataPoints : 0.0;
 
@@ -359,18 +377,17 @@ void GraphPlotting::render(wxDC& dc) {
             }
             float tecStdDev = validDataPoints > 1 ? std::sqrt(variance / (validDataPoints - 1)) : 0.0;
 
-
             wxString tecLabel = wxString::Format("%s (Min: %.2f, Max: %.2f, Mean: %.2f, Standard Deviation: %.2f)",
-                label, tecMin, tecMax, sumCurrent / validDataPoints, 0.0); // Placeholder for standard deviation
+                label, tecMin, tecMax, tecMean, tecStdDev);
 
             int xLegendPos = 50 + (tec * 380);
             dc.SetPen(wxPen(penColor, 3));
             dc.DrawLine(xLegendPos, height - 20, xLegendPos + 30, height - 20);
             dc.SetFont(wxFont(8, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL));
             dc.DrawText(tecLabel, wxPoint(xLegendPos + 40, height - 30));
-
         }
     }
+
 
 
 
@@ -423,9 +440,37 @@ void GraphPlotting::render(wxDC& dc) {
                 }
             }
 
+            // Display the latest voltage value at the right end of the line
+            if (!voltageData_.empty() && tec < voltageData_.back().size()) {
+                float latestVoltageValue = voltageData_.back()[tec];
+
+                wxDateTime endTime;
+                if (endTime.ParseFormat(timeData_.back(), "%H:%M:%S")) {
+                    wxTimeSpan endDiff = endTime.Subtract(startTime);
+                    long endSeconds = endDiff.GetSeconds().ToLong();
+                    int xEnd = static_cast<int>((endSeconds * xStep) + 50);
+                    int yEnd = height - 50 - static_cast<int>((latestVoltageValue - voltageMin_) * yScaleVoltage);
+
+                    // Draw the current value at the end of the line
+                    wxString currentValueLabel = wxString::Format("%.2f", latestVoltageValue);
+                    dc.SetFont(wxFont(8, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL));
+                    dc.DrawText(currentValueLabel, wxPoint(xEnd + 5, yEnd - 10));
+                }
+            }
+
             // Draw the legend below the X-axis (color and TEC label along with min/max values)
+            float tecMean = validDataPoints > 0 ? sumVoltage / validDataPoints : 0.0;
+            float variance = 0.0;
+            for (size_t i = 1; i < voltageData_.size(); ++i) {
+                if (tec < voltageData_[i].size()) {
+                    float voltageValue = voltageData_[i][tec];
+                    variance += std::pow(voltageValue - tecMean, 2);
+                }
+            }
+            float tecStdDev = validDataPoints > 1 ? std::sqrt(variance / (validDataPoints - 1)) : 0.0;
+
             wxString tecLabel = wxString::Format("%s (Min: %.2f, Max: %.2f, Mean: %.2f, Standard Deviation: %.2f)",
-                label, tecMin, tecMax, sumVoltage / validDataPoints, 0.0); // Placeholder for standard deviation
+                label, tecMin, tecMax, tecMean, tecStdDev);
 
             int xLegendPos = 50 + (tec * 380);
             dc.SetPen(wxPen(penColor, 3));
@@ -486,9 +531,28 @@ void GraphPlotting::render(wxDC& dc) {
                 }
             }
 
+            // Display the latest temperature value at the right end of the line
+            if (!temperatureData_.empty() && tec < temperatureData_.back().size()) {
+                float latestTempValue = temperatureData_.back()[tec];
+
+                wxDateTime endTime;
+                if (endTime.ParseFormat(timeData_.back(), "%H:%M:%S")) {
+                    wxTimeSpan endDiff = endTime.Subtract(startTime);
+                    long endSeconds = endDiff.GetSeconds().ToLong();
+                    int xEnd = static_cast<int>((endSeconds * xStep) + 50);
+                    int yEnd = height - 50 - static_cast<int>((latestTempValue - tempMin_) * yScaleTemp);
+
+                    // Draw the current value at the end of the line
+                    wxString currentValueLabel = wxString::Format("%.2f", latestTempValue);
+                    dc.SetFont(wxFont(8, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL));
+                    dc.DrawText(currentValueLabel, wxPoint(xEnd + 5, yEnd - 10));
+                }
+            }
+
             // Draw the legend below the X-axis (color and TEC label along with min/max values)
-            wxString tecLabel = wxString::Format("%s (Min: %.2f, Max: %.2f, Mean: %.2f, Standard Deviation: %.2f)",
-                label, tecMin, tecMax, sumTemp / validDataPoints, 0.0); // Placeholder for standard deviation
+            float tecMean = validDataPoints > 0 ? sumTemp / validDataPoints : 0.0;
+            wxString tecLabel = wxString::Format("%s (Min: %.2f, Max: %.2f, Mean: %.2f)",
+                label, tecMin, tecMax, tecMean);
 
             int xLegendPos = 50 + (tec * 380);
             dc.SetPen(wxPen(penColor, 3));
@@ -502,12 +566,11 @@ void GraphPlotting::render(wxDC& dc) {
 
 
 
+
     if (!diodeCurrentData_.empty()) {
         size_t diodeCount = diodeCurrentData_.size();  // Number of Diodes
 
-
         for (size_t diode = 0; diode < diodeCount; ++diode) {
-
             std::string label = diodeCurrentLabels_[diode];
 
             if (diodeCount > checkboxes_.size()) return;  // Safety check
@@ -522,7 +585,7 @@ void GraphPlotting::render(wxDC& dc) {
             size_t validDataPoints = 0;
 
             for (size_t i = 1; i < diodeCurrentData_[diode].size(); ++i) {
-                if (i < diodeCurrentData_[diode].size()){
+                if (i < diodeCurrentData_[diode].size()) {
                     float diodeCurrentValue = diodeCurrentData_[diode][i];
                     diodeMin = std::min(diodeMin, diodeCurrentValue);
                     diodeMax = std::max(diodeMax, diodeCurrentValue);
@@ -547,7 +610,24 @@ void GraphPlotting::render(wxDC& dc) {
                         dc.DrawLine(x1, y1, x2, y2);
                     }
                 }
+            }
 
+            // Display the latest diode current value at the right end of the line
+            if (!diodeCurrentData_.empty() && diode < diodeCurrentData_[diode].size()) {
+                float latestDiodeCurrentValue = diodeCurrentData_[diode].back();
+
+                wxDateTime endTime;
+                if (endTime.ParseFormat(timeData_.back(), "%H:%M:%S")) {
+                    wxTimeSpan endDiff = endTime.Subtract(startTime);
+                    long endSeconds = endDiff.GetSeconds().ToLong();
+                    int xEnd = static_cast<int>((endSeconds * xStep) + 50);
+                    int yEnd = height - 50 - static_cast<int>((latestDiodeCurrentValue - diodeCurrentMin_) * yScaleDiodeCurrent);
+
+                    // Draw the current value at the end of the line
+                    wxString currentValueLabel = wxString::Format("%.2f", latestDiodeCurrentValue);
+                    dc.SetFont(wxFont(8, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL));
+                    dc.DrawText(currentValueLabel, wxPoint(xEnd + 5, yEnd - 10));
+                }
             }
 
             // Mean and standard deviation
@@ -559,15 +639,15 @@ void GraphPlotting::render(wxDC& dc) {
             }
             float diodeStdDev = validDataPoints > 1 ? std::sqrt(variance / (validDataPoints - 1)) : 0.0;
 
-            wxString diodeLabel = wxString::Format("%s (Min: %.2f, Max: %.2f, μ: %.2f, σ: %.2f)",
+            wxString diodeLabel = wxString::Format("%s (Min: %.2f, Max: %.2f, Mean: %.2f, Standard Deviation: %.2f)",
                 label, diodeMin, diodeMax, diodeMean, diodeStdDev);
             int xLegendPos = 60 + (diode * 250);
             dc.SetPen(wxPen(penColor, 3));
             dc.DrawLine(xLegendPos, height - 30, xLegendPos + 30, height - 30);
             dc.DrawText(diodeLabel, wxPoint(xLegendPos + 35, height - 35));
         }
-
     }
+
 
     // Plot the power values
     if (!powerData_.empty()) {
@@ -617,9 +697,27 @@ void GraphPlotting::render(wxDC& dc) {
                 }
             }
 
+            // Display the latest power value at the right end of the line
+            if (!powerData_.empty() && tec < powerData_.back().size()) {
+                float latestPowerValue = powerData_.back()[tec];
+
+                wxDateTime endTime;
+                if (endTime.ParseFormat(timeData_.back(), "%H:%M:%S")) {
+                    wxTimeSpan endDiff = endTime.Subtract(startTime);
+                    long endSeconds = endDiff.GetSeconds().ToLong();
+                    int xEnd = static_cast<int>((endSeconds * xStep) + 50);
+                    int yEnd = height - 50 - static_cast<int>((latestPowerValue - powerMin_) * yScalePower);
+
+                    // Draw the current value at the end of the line
+                    wxString currentValueLabel = wxString::Format("%.2f", latestPowerValue);
+                    dc.SetFont(wxFont(8, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL));
+                    dc.DrawText(currentValueLabel, wxPoint(xEnd + 5, yEnd - 10));
+                }
+            }
+
             // Draw the legend below the X-axis (color and TEC label along with min/max values)
-            wxString tecLabel = wxString::Format("%s (Min: %.2f, Max: %.2f, Mean: %.2f, Standard Deviation: %.2f)",
-                label, tecMin, tecMax, sumPower / validDataPoints, 0.0); // Placeholder for standard deviation
+            float tecMean = validDataPoints > 0 ? sumPower / validDataPoints : 0.0;
+            wxString tecLabel = wxString::Format("%s (Min: %.2f, Max: %.2f, Mean: %.2f)", label, tecMin, tecMax, tecMean);
 
             int xLegendPos = 50 + (tec * 380);
             dc.SetPen(wxPen(penColor, 3));
@@ -633,8 +731,8 @@ void GraphPlotting::render(wxDC& dc) {
 
 
 
+
     // Plot the sensor values
-   // Plot the sensor values
     if (!sensorData_.empty()) {
         size_t tecCount = sensorData_.front().size();  // Number of sensors
 
@@ -682,9 +780,27 @@ void GraphPlotting::render(wxDC& dc) {
                 }
             }
 
+            // Display the latest sensor value at the right end of the line
+            if (!sensorData_.empty() && tec < sensorData_.back().size()) {
+                float latestSensorValue = sensorData_.back()[tec];
+
+                wxDateTime endTime;
+                if (endTime.ParseFormat(timeData_.back(), "%H:%M:%S")) {
+                    wxTimeSpan endDiff = endTime.Subtract(startTime);
+                    long endSeconds = endDiff.GetSeconds().ToLong();
+                    int xEnd = static_cast<int>((endSeconds * xStep) + 50);
+                    int yEnd = height - 50 - static_cast<int>((latestSensorValue - sensorMin_) * yScaleSensor);
+
+                    // Draw the current value at the end of the line
+                    wxString currentValueLabel = wxString::Format("%.2f", latestSensorValue);
+                    dc.SetFont(wxFont(8, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL));
+                    dc.DrawText(currentValueLabel, wxPoint(xEnd + 5, yEnd - 10));
+                }
+            }
+
             // Draw the legend below the X-axis (color and TEC label along with min/max values)
-            wxString tecLabel = wxString::Format("%s (Min: %.2f, Max: %.2f, Mean: %.2f, Standard Deviation: %.2f)",
-                label, tecMin, tecMax, sumSensor / validDataPoints, 0.0); // Placeholder for standard deviation
+            float tecMean = validDataPoints > 0 ? sumSensor / validDataPoints : 0.0;
+            wxString tecLabel = wxString::Format("%s (Min: %.2f, Max: %.2f, Mean: %.2f)", label, tecMin, tecMax, tecMean);
 
             int xLegendPos = 50 + (tec * 380);
             dc.SetPen(wxPen(penColor, 3));
@@ -693,7 +809,6 @@ void GraphPlotting::render(wxDC& dc) {
             dc.DrawText(tecLabel, wxPoint(xLegendPos + 40, height - 30));
         }
     }
-
 }
 
 void GraphPlotting::drawYAxisLabels(wxDC& dc, int width, int height, bool leftAxis, float maxValue, float minValue, const wxString& unit) {
