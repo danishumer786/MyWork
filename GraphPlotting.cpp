@@ -641,10 +641,13 @@ void GraphPlotting::render(wxDC& dc) {
 
             wxString diodeLabel = wxString::Format("%s (Min: %.2f, Max: %.2f, Mean: %.2f, Standard Deviation: %.2f)",
                 label, diodeMin, diodeMax, diodeMean, diodeStdDev);
-            int xLegendPos = 60 + (diode * 250);
+            int xLegendPos = 50 + (diode * 380);
             dc.SetPen(wxPen(penColor, 3));
-            dc.DrawLine(xLegendPos, height - 30, xLegendPos + 30, height - 30);
-            dc.DrawText(diodeLabel, wxPoint(xLegendPos + 35, height - 35));
+            dc.DrawLine(xLegendPos, height - 20, xLegendPos + 30, height - 20);
+            dc.DrawText(diodeLabel, wxPoint(xLegendPos + 40, height - 30));
+
+            
+            
         }
     }
 
