@@ -3,6 +3,7 @@
 #include <wx/log.h>
 
 void RealTimeObserver::onDataPointLogged(std::map<std::string, std::string> data) {
+    printf("i received the data");
     textCtrl_->AppendText("Received Data:\n");
     wxString currentTime = wxDateTime::Now().Format("%H:%M:%S");
 
@@ -86,7 +87,7 @@ void RealTimeObserver::onDataPointLogged(std::map<std::string, std::string> data
             } 
 
             // Handle Alarms
-           else if (entry.first.find("Alarms") != std::string::npos) {
+            else if (entry.first.find("Alarms") != std::string::npos) {
                 if (!entry.second.empty()) {
                     wxString newAlarmMessage = wxString::FromUTF8(entry.second); 
                     wxString newAlarmTime = currentTime;  

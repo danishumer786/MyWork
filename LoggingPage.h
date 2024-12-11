@@ -11,7 +11,7 @@
 #include "../CommonGUIComponents/NumericTextCtrl.h"
 #include "../LaserGUI/RealTimeObserver.h"
 #include "../LaserGUI/SettingsPages/AutotunePlotCanvas.h"
-#include "../LaserGUI/GraphingWork.h"
+//#include "../LaserGUI/GraphingWork.h"
 
 
 class LogCategoryCheckbox : public wxCheckBox {
@@ -46,6 +46,7 @@ public:
 	void OnCheckboxToggle(wxCommandEvent& event);
 
 
+
 private:
 
 	std::shared_ptr<CustomLogger> logger;
@@ -78,6 +79,20 @@ private:
 	wxButton* ResetLogButton;
 	wxButton* SaveLogNowButton;
 	wxCheckBox* checkboxes;
+
+	wxCheckBox* alarmCheckbox;        // Checkbox for alarms
+	wxCheckBox* tecCurrentCheckbox;  // Checkbox for TEC Current
+	wxCheckBox* diodeCheckbox;       // Checkbox for Diode Current
+	wxCheckBox* powerCheckbox;       // Checkbox for Power Monitor
+	wxCheckBox* sensorCheckbox;      // Checkbox for Sensors
+
+	wxPanel* alarmPanel;             // Alarm panel reference
+	wxPanel* tecPanel;               // TEC panel reference
+	wxPanel* diodePanel;             // Diode panel reference
+	wxPanel* powerPanel;             // Power panel reference
+	wxPanel* sensorPanel;            // Sensor panel reference
+
+	wxBoxSizer* mainSizer;           // Main sizer for layout adjustments
 	 
 
 private:
@@ -97,5 +112,12 @@ private:
 	void OnSaveNowButtonClicked(wxCommandEvent& evt);
 	void OnLogTimer(wxTimerEvent& evt);
 
+
+	
+
 };
+
+
+
+
 

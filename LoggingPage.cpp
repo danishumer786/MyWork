@@ -2,7 +2,7 @@
 #include "..\LaserGUI\GraphPlotting.h"
 #include "LoggingPage.h"
 #include "../CommonFunctions_GUI.h"
-#include "../LaserGUI/GraphingWork.h" 
+//#include "../LaserGUI/GraphingWork.h" 
 
 using namespace std;
 
@@ -44,8 +44,7 @@ const vector<LaserStateLogCategoryEnum> LASER_STATE_LOG_CATEGORIES_VISIBLE_TO_US
 };
 
 
-LoggingPage::LoggingPage(shared_ptr<MainLaserControllerInterface> _lc, wxWindow* parent) :
-	SettingsPage_Base(_lc, parent) {
+LoggingPage::LoggingPage(shared_ptr<MainLaserControllerInterface> _lc, wxWindow* parent) :SettingsPage_Base(_lc, parent) {
 	logger = make_shared<CustomLogger>(lc);
 	CustomLogDebugOutput* logDebugOutput = new CustomLogDebugOutput();
 	logger->addObserver(logDebugOutput);
@@ -295,32 +294,59 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 
 
 
+
+
 			// --------------------------------------------------------------------------------------------------------------------------------------------------------
-			// Create and add the alarm panel at the TOP of the main panel (above the scrolled window)
+
 			wxPanel* alarmPanel = new wxPanel(mainPanel, wxID_ANY);
-			wxBoxSizer* alarmSizer = new wxBoxSizer(wxHORIZONTAL);
+			wxBoxSizer* alarmSizer = new wxBoxSizer(wxVERTICAL);
+
+			wxBoxSizer* toggleSizer = new wxBoxSizer(wxHORIZONTAL);
+
+			wxBitmap expandBitmap(wxT("Images/up_caret_small.png"), wxBITMAP_TYPE_PNG);
+			wxBitmap collapseBitmap(wxT("Images/down_caret_small.png"), wxBITMAP_TYPE_PNG);
+
+			wxBitmapButton* toggleButton = new wxBitmapButton(alarmPanel, wxID_ANY, expandBitmap, wxDefaultPosition, wxSize(30, 30));
+
+			wxStaticText* alarmLabel = new wxStaticText(alarmPanel, wxID_ANY, _("Alarms"), wxDefaultPosition, wxDefaultSize);
+
+			toggleSizer->Add(toggleButton, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+			toggleSizer->Add(alarmLabel, 1, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
 			wxTextCtrl* alarmTextCtrl = new wxTextCtrl(alarmPanel, wxID_ANY, _("No alarms"), wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY);
+			alarmTextCtrl->Hide();
+
+			alarmSizer->Add(toggleSizer, 0, wxEXPAND | wxALL, 5);
 			alarmSizer->Add(alarmTextCtrl, 1, wxEXPAND | wxALL, 5);
-			alarmPanel->SetBackgroundColour(*wxLIGHT_GREY);
+
 			alarmPanel->SetSizer(alarmSizer);
 			mainSizer->Add(alarmPanel, 0, wxEXPAND | wxALL, 5);
+
+			toggleButton->Bind(wxEVT_BUTTON, [=](wxCommandEvent& event) {
+				if (alarmTextCtrl->IsShown()) {
+					alarmTextCtrl->Hide(); 
+					toggleButton->SetBitmap(expandBitmap);
+				}
+				else {
+					alarmTextCtrl->Show(); 
+					toggleButton->SetBitmap(collapseBitmap); 
+				}
+				alarmPanel->GetParent()->Layout(); 
+				});
 
 			RealTimeObserver* observer = new RealTimeObserver(RealTimeTempLogTextCtrl, alarmTextCtrl);
 			logger->addObserver(observer);
 
-			
 
-			// --------------------------------------------------------------------------------------------------------------------------------------------------------
-			// Set up the scrolled window to contain graph panels
+			
 			wxScrolledWindow* scrolledWindow = new wxScrolledWindow(mainPanel, wxID_ANY);
 			scrolledWindow->SetScrollRate(10, 10);  
 			wxBoxSizer* scrollSizer = new wxBoxSizer(wxVERTICAL);
 
-			// --------------------------------------------------------------------------------------------------------------------------------------------------------
-			// ******** TEC Panel ********
+			// ******** TEC Panel with Proper Dynamic Adjustment and Custom Toggle Images ********
 			wxPanel* tecPanel = new wxPanel(scrolledWindow, wxID_ANY);
 			wxBoxSizer* tecSizer = new wxBoxSizer(wxVERTICAL);
+
 			std::vector<wxCheckBox*> tecCheckboxes;
 			wxBoxSizer* tecCheckboxSizer = new wxBoxSizer(wxHORIZONTAL);
 
@@ -347,60 +373,168 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			// Add checkboxes under the current plot
 			tecSizer->Add(tecCheckboxSizer, 0, wxEXPAND | wxALL, 5);
 
-			// 1. Create TEC Current label and plot
-			wxStaticText* tecCurrentLabel = new wxStaticText(tecPanel, wxID_ANY, _("TEC Current"), wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE);
-			tecCurrentLabel->SetFont(tecCurrentLabel->GetFont().Bold());
-			tecSizer->Add(tecCurrentLabel, 0, wxEXPAND | wxALL, 5);  
+			// Main Toggle Button for TEC Panel
+			wxPanel* mainTecTogglePanel = new wxPanel(tecPanel, wxID_ANY);
+			wxBoxSizer* mainTecToggleSizer = new wxBoxSizer(wxHORIZONTAL);
+			wxStaticText* mainTecLabel = new wxStaticText(mainTecTogglePanel, wxID_ANY, _("TEC Panel"), wxDefaultPosition, wxDefaultSize);
+			mainTecLabel->SetFont(mainTecLabel->GetFont().Bold());
+			wxBitmapButton* mainTecToggleButton = new wxBitmapButton(mainTecTogglePanel, wxID_ANY, expandBitmap, wxDefaultPosition, wxSize(30, 30));
+			mainTecToggleSizer->Add(mainTecToggleButton, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+			mainTecToggleSizer->Add(mainTecLabel, 1, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+			mainTecTogglePanel->SetSizer(mainTecToggleSizer);
+			tecSizer->Add(mainTecTogglePanel, 0, wxEXPAND | wxALL, 5);
 
-			currentPlot = new GraphPlotting(tecPanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), tecCheckboxes);
+			// Container for TEC Subsections
+			wxPanel* tecContainer = new wxPanel(tecPanel, wxID_ANY);
+			wxBoxSizer* tecContainerSizer = new wxBoxSizer(wxVERTICAL);
+			tecContainer->SetSizer(tecContainerSizer);
+			tecSizer->Add(tecContainer, 0, wxEXPAND | wxALL, 5);
+
+			// Helper function to update layout dynamically
+			auto updateLayout = [tecPanel, scrolledWindow]() {
+				scrolledWindow->Layout();
+				scrolledWindow->FitInside();
+				tecPanel->Layout();
+				};
+
+			
+
+			wxPanel* currentPanel = new wxPanel(tecContainer, wxID_ANY);
+			wxBoxSizer* currentSizer = new wxBoxSizer(wxVERTICAL);
+			currentPlot = new GraphPlotting(currentPanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200),tecCheckboxes);
 			currentPlot->SetMinSize(wxSize(1000, 300));
-			tecSizer->Add(currentPlot, 1, wxEXPAND | wxALL, 5);  
+			currentSizer->Add(currentPlot, 1, wxEXPAND | wxALL, 5);
+			currentPanel->SetSizer(currentSizer);
 
-			// 2. Create TEC Voltage label and plot
-			wxStaticText* tecVoltageLabel = new wxStaticText(tecPanel, wxID_ANY, _("TEC Voltage"), wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE);
-			tecVoltageLabel->SetFont(tecVoltageLabel->GetFont().Bold());
-			tecSizer->Add(tecVoltageLabel, 0, wxEXPAND | wxALL, 5);  
+			wxPanel* currentTogglePanel = new wxPanel(tecContainer, wxID_ANY);
+			wxBoxSizer* currentToggleSizer = new wxBoxSizer(wxHORIZONTAL);
+			wxStaticText* currentToggleLabel = new wxStaticText(currentTogglePanel, wxID_ANY, _("TEC Current"), wxDefaultPosition, wxDefaultSize);
+			currentToggleLabel->SetFont(currentToggleLabel->GetFont().Bold());
+			wxBitmapButton* currentToggleButton = new wxBitmapButton(currentTogglePanel, wxID_ANY, expandBitmap, wxDefaultPosition, wxSize(30, 30));
+			currentToggleSizer->Add(currentToggleButton, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+			currentToggleSizer->Add(currentToggleLabel, 1, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+			currentTogglePanel->SetSizer(currentToggleSizer);
 
-			voltagePlot = new GraphPlotting(tecPanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), tecCheckboxes);
+			tecContainerSizer->Add(currentTogglePanel, 0, wxEXPAND | wxALL, 5);
+			tecContainerSizer->Add(currentPanel, 0, wxEXPAND | wxALL, 5);
+			currentPanel->Hide();
+
+			currentToggleButton->Bind(wxEVT_BUTTON, [currentPanel, currentToggleButton, updateLayout, expandBitmap, collapseBitmap](wxCommandEvent& event) {
+				bool isVisible = currentPanel->IsShown();
+				currentPanel->Show(!isVisible);
+				currentToggleButton->SetBitmap(isVisible ? expandBitmap : collapseBitmap);
+				updateLayout();
+				});
+
+			// ******** TEC Voltage Section ********
+			wxPanel* voltagePanel = new wxPanel(tecContainer, wxID_ANY);
+			wxBoxSizer* voltageSizer = new wxBoxSizer(wxVERTICAL);
+			voltagePlot = new GraphPlotting(voltagePanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), tecCheckboxes);
 			voltagePlot->SetMinSize(wxSize(1000, 300));
-			tecSizer->Add(voltagePlot, 1, wxEXPAND | wxALL, 5);  
+			voltageSizer->Add(voltagePlot, 1, wxEXPAND | wxALL, 5);
+			voltagePanel->SetSizer(voltageSizer);
 
-			// 3. Create TEC Temperature label and plot
-			wxStaticText* tecTempLabel = new wxStaticText(tecPanel, wxID_ANY, _("TEC Temperature"), wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE);
-			tecTempLabel->SetFont(tecTempLabel->GetFont().Bold());
-			tecSizer->Add(tecTempLabel, 0, wxEXPAND | wxALL, 5);  
+			wxPanel* voltageTogglePanel = new wxPanel(tecContainer, wxID_ANY);
+			wxBoxSizer* voltageToggleSizer = new wxBoxSizer(wxHORIZONTAL);
+			wxStaticText* voltageToggleLabel = new wxStaticText(voltageTogglePanel, wxID_ANY, _("TEC Voltage"), wxDefaultPosition, wxDefaultSize);
+			voltageToggleLabel->SetFont(voltageToggleLabel->GetFont().Bold());
+			wxBitmapButton* voltageToggleButton = new wxBitmapButton(voltageTogglePanel, wxID_ANY, expandBitmap, wxDefaultPosition, wxSize(30, 30));
+			voltageToggleSizer->Add(voltageToggleButton, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+			voltageToggleSizer->Add(voltageToggleLabel, 1, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+			voltageTogglePanel->SetSizer(voltageToggleSizer);
 
-			tempPlot = new GraphPlotting(tecPanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), tecCheckboxes);
+			tecContainerSizer->Add(voltageTogglePanel, 0, wxEXPAND | wxALL, 5);
+			tecContainerSizer->Add(voltagePanel, 0, wxEXPAND | wxALL, 5);
+			voltagePanel->Hide();
+
+			voltageToggleButton->Bind(wxEVT_BUTTON, [voltagePanel, voltageToggleButton, updateLayout, expandBitmap, collapseBitmap](wxCommandEvent& event) {
+				bool isVisible = voltagePanel->IsShown();
+				voltagePanel->Show(!isVisible);
+				voltageToggleButton->SetBitmap(isVisible ? expandBitmap : collapseBitmap);
+				updateLayout();
+				});
+
+			// ******** TEC Temperature Section ********
+			wxPanel* tempPanel = new wxPanel(tecContainer, wxID_ANY);
+			wxBoxSizer* tempSizer = new wxBoxSizer(wxVERTICAL);
+			tempPlot = new GraphPlotting(tempPanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), tecCheckboxes);
 			tempPlot->SetMinSize(wxSize(1000, 300));
-			tecSizer->Add(tempPlot, 1, wxEXPAND | wxALL, 10); 
-			// Observer for TEC data
+			tempSizer->Add(tempPlot, 1, wxEXPAND | wxALL, 5);
+			tempPanel->SetSizer(tempSizer);
+
+			wxPanel* tempTogglePanel = new wxPanel(tecContainer, wxID_ANY);
+			wxBoxSizer* tempToggleSizer = new wxBoxSizer(wxHORIZONTAL);
+			wxStaticText* tempToggleLabel = new wxStaticText(tempTogglePanel, wxID_ANY, _("TEC Temperature"), wxDefaultPosition, wxDefaultSize);
+			tempToggleLabel->SetFont(tempToggleLabel->GetFont().Bold());
+			wxBitmapButton* tempToggleButton = new wxBitmapButton(tempTogglePanel, wxID_ANY, expandBitmap, wxDefaultPosition, wxSize(30, 30));
+			tempToggleSizer->Add(tempToggleButton, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+			tempToggleSizer->Add(tempToggleLabel, 1, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+			tempTogglePanel->SetSizer(tempToggleSizer);
+
+			tecContainerSizer->Add(tempTogglePanel, 0, wxEXPAND | wxALL, 5);
+			tecContainerSizer->Add(tempPanel, 0, wxEXPAND | wxALL, 5);
+			tempPanel->Hide();
+
+			tempToggleButton->Bind(wxEVT_BUTTON, [tempPanel, tempToggleButton, updateLayout, expandBitmap, collapseBitmap](wxCommandEvent& event) {
+				bool isVisible = tempPanel->IsShown();
+				tempPanel->Show(!isVisible);
+				tempToggleButton->SetBitmap(isVisible ? expandBitmap : collapseBitmap);
+				updateLayout();
+				});
+
+
+			mainTecToggleButton->Bind(wxEVT_BUTTON, [tecContainer, mainTecToggleButton, updateLayout, expandBitmap, collapseBitmap](wxCommandEvent& event) {
+				bool isVisible = tecContainer->IsShown();
+				tecContainer->Show(!isVisible);
+				mainTecToggleButton->SetBitmap(isVisible ? expandBitmap : collapseBitmap);
+				updateLayout();
+				});
+			
 			RealTimeObserver* tecObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, currentPlot, voltagePlot, tempPlot);
 			logger->addObserver(tecObserver);
 
+			// Finalize the TEC Panel
 			tecPanel->SetSizer(tecSizer);
-			scrollSizer->Add(tecPanel, 3, wxEXPAND | wxALL, 5);
+			scrollSizer->Add(tecPanel, 0, wxEXPAND | wxALL, 5);
 
 			
-			// --------------------------------------------------------------------------------------------------------------------------------------------------------
-			// ******** Diode Panel ********
+			scrolledWindow->SetSizer(scrollSizer);
+			scrolledWindow->FitInside();
+			scrolledWindow->SetScrollRate(10, 10);
+
+
+
+
+			
+			// ******** Diode Panel with Proper Shrinking and Custom Toggle Images ********
 			wxPanel* diodePanel = new wxPanel(scrolledWindow, wxID_ANY);
 			wxBoxSizer* diodeSizer = new wxBoxSizer(wxVERTICAL);
 
-			// Create Diode Current label and plot
-			wxStaticText* diodeCurrentLabel = new wxStaticText(diodePanel, wxID_ANY, _("Diode Current"), wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE);
-			diodeCurrentLabel->SetFont(diodeCurrentLabel->GetFont().Bold());
-			diodeSizer->Add(diodeCurrentLabel, 0, wxEXPAND | wxALL, 5); 
+			GraphPlotting* diodePlot = nullptr;
 
+			
+			wxPanel* diodeTogglePanel = new wxPanel(diodePanel, wxID_ANY);
+			wxBoxSizer* diodeToggleSizer = new wxBoxSizer(wxHORIZONTAL);
+			wxStaticText* diodeToggleLabel = new wxStaticText(diodeTogglePanel, wxID_ANY, _("Diode Current"), wxDefaultPosition, wxDefaultSize);
+			diodeToggleLabel->SetFont(diodeToggleLabel->GetFont().Bold());
+			wxBitmapButton* diodeToggleButton = new wxBitmapButton(diodeTogglePanel, wxID_ANY, expandBitmap, wxDefaultPosition, wxSize(30, 30));
+			diodeToggleSizer->Add(diodeToggleButton, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+			diodeToggleSizer->Add(diodeToggleLabel, 1, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+			diodeTogglePanel->SetSizer(diodeToggleSizer);
+			diodeSizer->Add(diodeTogglePanel, 0, wxEXPAND | wxALL, 5);
+
+			// Diode Panel Content
+			wxPanel* diodeContentPanel = new wxPanel(diodePanel, wxID_ANY);
+			wxBoxSizer* diodeContentSizer = new wxBoxSizer(wxVERTICAL);
+
+			// Diode Checkboxes
 			std::vector<wxCheckBox*> diodeCheckboxes;
 			wxBoxSizer* diodeCheckboxSizer = new wxBoxSizer(wxHORIZONTAL);
 
-			vector<int> diodeIDs = lc->GetLddIds();  
-			GraphPlotting* diodePlot = nullptr;
-
-			// Diode Checkboxes for currents
+			vector<int> diodeIDs = lc->GetLddIds();
 			for (int id : diodeIDs) {
 				std::string diodeLabel = lc->GetLDDLabel(id);
-				wxCheckBox* diodeCheckBox = new wxCheckBox(diodePanel, wxID_ANY, diodeLabel, wxDefaultPosition, wxDefaultSize);
+				wxCheckBox* diodeCheckBox = new wxCheckBox(diodeContentPanel, wxID_ANY, diodeLabel, wxDefaultPosition, wxDefaultSize);
 				diodeCheckBox->SetValue(true);
 
 				diodeCheckBox->Bind(wxEVT_CHECKBOX, [&, diodePlot](wxCommandEvent& event) {
@@ -412,39 +546,76 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 				diodeCheckboxes.push_back(diodeCheckBox);
 				diodeCheckboxSizer->Add(diodeCheckBox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 			}
-			// Add checkboxes under the diode current plot
-			diodeSizer->Add(diodeCheckboxSizer, 0, wxEXPAND | wxALL, 5);
+			diodeContentSizer->Add(diodeCheckboxSizer, 0, wxEXPAND | wxALL, 5);
 
-			diodePlot = new GraphPlotting(diodePanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), diodeCheckboxes);
-			diodeSizer->Add(diodePlot, 1, wxEXPAND | wxALL, 5); 
+			// Diode Graph
+			diodePlot = new GraphPlotting(diodeContentPanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), diodeCheckboxes);
+			diodeContentSizer->Add(diodePlot, 1, wxEXPAND | wxALL, 5);
 
-			diodePanel->SetSizer(diodeSizer);
-			scrollSizer->Add(diodePanel, 1.2, wxEXPAND | wxALL, 5);
+			diodeContentPanel->SetSizer(diodeContentSizer);
+			diodeSizer->Add(diodeContentPanel, 1, wxEXPAND | wxALL, 5);
 
-		
-			// Add observer for diode data
+			// Initially hide the content panel and set toggle button to "closed" state
+			diodeContentPanel->Hide();
+			diodeToggleButton->SetBitmap(expandBitmap);
+
+			// Diode Toggle Button Event
+			diodeToggleButton->Bind(wxEVT_BUTTON, [diodeContentPanel, diodeToggleButton, scrolledWindow, scrollSizer, expandBitmap, collapseBitmap](wxCommandEvent& event) {
+				bool isVisible = diodeContentPanel->IsShown();
+				diodeContentPanel->Show(!isVisible);
+				diodeToggleButton->SetBitmap(isVisible ? expandBitmap : collapseBitmap);
+
+				
+				scrollSizer->Layout();             
+				scrolledWindow->FitInside();        
+				scrolledWindow->Refresh();         
+				scrolledWindow->Update();        
+				});
+
+			
 			RealTimeObserver* diodeObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, diodePlot, PlotType::Diode);
 			logger->addObserver(diodeObserver);
 
-			//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-			// ******** Power Panel ********
+			
+			diodePanel->SetSizer(diodeSizer);
+			scrollSizer->Add(diodePanel, 0, wxEXPAND | wxALL, 5);
+
+			
+			scrolledWindow->SetSizer(scrollSizer);
+			scrolledWindow->FitInside();
+			scrolledWindow->SetScrollRate(10, 10);
+
+
+
+			// ******** Power Panel ******//
 			wxPanel* powerPanel = new wxPanel(scrolledWindow, wxID_ANY);
 			wxBoxSizer* powerSizer = new wxBoxSizer(wxVERTICAL);
 
-			// Create Power Monitor label and plot
-			wxStaticText* powerLabel = new wxStaticText(powerPanel, wxID_ANY, _("Power Monitor"), wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE);
-			powerLabel->SetFont(powerLabel->GetFont().Bold());
-			powerSizer->Add(powerLabel, 0, wxEXPAND | wxALL, 5);
+			GraphPlotting* powerPlot = nullptr;
 
+			// Power Toggle Button
+			wxPanel* powerTogglePanel = new wxPanel(powerPanel, wxID_ANY);
+			wxBoxSizer* powerToggleSizer = new wxBoxSizer(wxHORIZONTAL);
+			wxStaticText* powerToggleLabel = new wxStaticText(powerTogglePanel, wxID_ANY, _("Power Monitor"), wxDefaultPosition, wxDefaultSize);
+			powerToggleLabel->SetFont(powerToggleLabel->GetFont().Bold());
+			wxBitmapButton* powerToggleButton = new wxBitmapButton(powerTogglePanel, wxID_ANY, expandBitmap, wxDefaultPosition, wxSize(30, 30));
+			powerToggleSizer->Add(powerToggleButton, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+			powerToggleSizer->Add(powerToggleLabel, 1, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+			powerTogglePanel->SetSizer(powerToggleSizer);
+			powerSizer->Add(powerTogglePanel, 0, wxEXPAND | wxALL, 5);
+
+			// Power Panel Content
+			wxPanel* powerContentPanel = new wxPanel(powerPanel, wxID_ANY);
+			wxBoxSizer* powerContentSizer = new wxBoxSizer(wxVERTICAL);
+
+			// Power Checkboxes
 			std::vector<wxCheckBox*> powerCheckboxes;
 			wxBoxSizer* powerCheckboxSizer = new wxBoxSizer(wxHORIZONTAL);
 
-			// Create Power Checkboxes
 			vector<int> powerMonitorIDs = lc->GetPowerMonitorIDs();
-			GraphPlotting* powerPlot = nullptr;
 			for (int id : powerMonitorIDs) {
 				std::string label = lc->GetPowerMonitorLabel(id);
-				wxCheckBox* powerCheckBox = new wxCheckBox(powerPanel, wxID_ANY, label, wxDefaultPosition, wxDefaultSize);
+				wxCheckBox* powerCheckBox = new wxCheckBox(powerContentPanel, wxID_ANY, label, wxDefaultPosition, wxDefaultSize);
 				powerCheckBox->SetValue(true);
 
 				powerCheckBox->Bind(wxEVT_CHECKBOX, [&, powerPlot](wxCommandEvent& event) {
@@ -456,37 +627,75 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 				powerCheckboxes.push_back(powerCheckBox);
 				powerCheckboxSizer->Add(powerCheckBox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 			}
-			powerSizer->Add(powerCheckboxSizer, 0, wxEXPAND | wxALL, 5);
+			powerContentSizer->Add(powerCheckboxSizer, 0, wxEXPAND | wxALL, 5);
 
-			// Create Power Graph Plotting
-			powerPlot = new GraphPlotting(powerPanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), powerCheckboxes);
-			powerSizer->Add(powerPlot, 1, wxEXPAND | wxALL, 5);
+			// Power Graph
+			powerPlot = new GraphPlotting(powerContentPanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), powerCheckboxes);
+			powerContentSizer->Add(powerPlot, 1, wxEXPAND | wxALL, 5);
 
-			powerPanel->SetSizer(powerSizer);
-			scrollSizer->Add(powerPanel, 1, wxEXPAND | wxALL, 5);
+			powerContentPanel->SetSizer(powerContentSizer);
+			powerSizer->Add(powerContentPanel, 1, wxEXPAND | wxALL, 5);
 
-			
+			// Initially hide the content panel and set toggle button to "closed" state
+			powerContentPanel->Hide();
+			powerToggleButton->SetBitmap(expandBitmap);
 
-			// Add observer for power data
+			// Power Toggle Button Event
+			powerToggleButton->Bind(wxEVT_BUTTON, [powerContentPanel, powerToggleButton, scrolledWindow, scrollSizer, expandBitmap, collapseBitmap](wxCommandEvent& event) {
+				bool isVisible = powerContentPanel->IsShown();
+				powerContentPanel->Show(!isVisible);
+				powerToggleButton->SetBitmap(isVisible ? expandBitmap : collapseBitmap);
+
+				// Correctly adjust the layout dynamically
+				scrollSizer->Layout();           
+				scrolledWindow->FitInside();        
+				scrolledWindow->Refresh();          
+				scrolledWindow->Update();          
+				});
+
+			// Add Observer for Power Data
 			RealTimeObserver* powerObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, powerPlot, PlotType::Power);
 			logger->addObserver(powerObserver);
 
+			powerPanel->SetSizer(powerSizer);
+			scrollSizer->Add(powerPanel, 0, wxEXPAND | wxALL, 5); // Add panel without fixed proportion
+
+			// Ensure scrolled window layout adjusts dynamically
+			scrolledWindow->SetSizer(scrollSizer);
+			scrolledWindow->FitInside();
+			scrolledWindow->SetScrollRate(10, 10);
+
+
+
+
 			//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-			// ******** Sensor Panel ********
+			
 			wxPanel* sensorPanel = new wxPanel(scrolledWindow, wxID_ANY);
 			wxBoxSizer* sensorSizer = new wxBoxSizer(wxVERTICAL);
 
-			// Create Chiller Flow and Humidity label and plot
-			wxStaticText* sensorLabel = new wxStaticText(sensorPanel, wxID_ANY, _("Sensors"), wxDefaultPosition, wxDefaultSize, wxALIGN_CENTRE);
-			sensorLabel->SetFont(sensorLabel->GetFont().Bold());
-			sensorSizer->Add(sensorLabel, 0, wxEXPAND | wxALL, 5);  
+			GraphPlotting* sensorPlot = nullptr;
+
+			
+			wxPanel* sensorTogglePanel = new wxPanel(sensorPanel, wxID_ANY);
+			wxBoxSizer* sensorToggleSizer = new wxBoxSizer(wxHORIZONTAL);
+			wxStaticText* sensorToggleLabel = new wxStaticText(sensorTogglePanel, wxID_ANY, _("Sensors"), wxDefaultPosition, wxDefaultSize);
+			sensorToggleLabel->SetFont(sensorToggleLabel->GetFont().Bold());
+			wxBitmapButton* sensorToggleButton = new wxBitmapButton(sensorTogglePanel, wxID_ANY, expandBitmap, wxDefaultPosition, wxSize(30, 30));
+			sensorToggleSizer->Add(sensorToggleButton, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+			sensorToggleSizer->Add(sensorToggleLabel, 1, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+			sensorTogglePanel->SetSizer(sensorToggleSizer);
+			sensorSizer->Add(sensorTogglePanel, 0, wxEXPAND | wxALL, 5);
+
+			// Sensor Panel Content
+			wxPanel* sensorContentPanel = new wxPanel(sensorPanel, wxID_ANY);
+			wxBoxSizer* sensorContentSizer = new wxBoxSizer(wxVERTICAL);
 
 			// Create checkboxes for Flow and Humidity
 			std::vector<wxCheckBox*> sensorCheckboxes;
 			wxBoxSizer* sensorCheckboxSizer = new wxBoxSizer(wxHORIZONTAL);
 
 			if (lc->ChillerFlowIsEnabledForUse()) {
-				wxCheckBox* flowCheckbox = new wxCheckBox(sensorPanel, wxID_ANY, "Chiller Flow", wxDefaultPosition, wxDefaultSize);
+				wxCheckBox* flowCheckbox = new wxCheckBox(sensorContentPanel, wxID_ANY, "Chiller Flow", wxDefaultPosition, wxDefaultSize);
 				flowCheckbox->SetValue(true);
 				sensorCheckboxes.push_back(flowCheckbox);
 				sensorCheckboxSizer->Add(flowCheckbox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
@@ -495,26 +704,54 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			auto humidityIds = lc->GetHumidityIds();
 			for (int id : humidityIds) {
 				std::string humidityLabel = lc->GetHumidityLabel(id);
-				wxCheckBox* humidityCheckbox = new wxCheckBox(sensorPanel, wxID_ANY, humidityLabel, wxDefaultPosition, wxDefaultSize);
+				wxCheckBox* humidityCheckbox = new wxCheckBox(sensorContentPanel, wxID_ANY, humidityLabel, wxDefaultPosition, wxDefaultSize);
 				humidityCheckbox->SetValue(true);
 				sensorCheckboxes.push_back(humidityCheckbox);
 				sensorCheckboxSizer->Add(humidityCheckbox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 			}
 
 			// Add checkboxes under the sensor plot
-			sensorSizer->Add(sensorCheckboxSizer, 0, wxEXPAND | wxALL, 5);
+			sensorContentSizer->Add(sensorCheckboxSizer, 0, wxEXPAND | wxALL, 5);
 
-			// Create the GraphPlotting instance for sensors
-			GraphPlotting* sensorPlot = new GraphPlotting(sensorPanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), sensorCheckboxes);
+			
+			sensorPlot = new GraphPlotting(sensorContentPanel, wxID_ANY, wxDefaultPosition, wxSize(1000, 200), sensorCheckboxes);
 			sensorPlot->SetMinSize(wxSize(1000, 300));
-			sensorSizer->Add(sensorPlot, 1, wxEXPAND | wxALL, 5);  // Add the sensor graph below the label
+			sensorContentSizer->Add(sensorPlot, 1, wxEXPAND | wxALL, 5); 
 
-			sensorPanel->SetSizer(sensorSizer);
-			scrollSizer->Add(sensorPanel, 1.2, wxEXPAND | wxALL, 5);
+			sensorContentPanel->SetSizer(sensorContentSizer);
+			sensorSizer->Add(sensorContentPanel, 1, wxEXPAND | wxALL, 5);
+
+			
+			sensorContentPanel->Hide();
+			sensorToggleButton->SetBitmap(expandBitmap);
+
+			// Sensor Toggle Button Event
+			sensorToggleButton->Bind(wxEVT_BUTTON, [sensorContentPanel, sensorToggleButton, scrolledWindow, scrollSizer, expandBitmap, collapseBitmap](wxCommandEvent& event) {
+				bool isVisible = sensorContentPanel->IsShown();
+				sensorContentPanel->Show(!isVisible);
+				sensorToggleButton->SetBitmap(isVisible ? expandBitmap : collapseBitmap);
+
+				
+				scrollSizer->Layout();             
+				scrolledWindow->FitInside();       
+				scrolledWindow->Refresh();          
+				scrolledWindow->Update();          
+				});
 
 			// Add observer for sensor data
 			RealTimeObserver* sensorObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, sensorPlot, PlotType::Sensors);
 			logger->addObserver(sensorObserver);
+
+			sensorPanel->SetSizer(sensorSizer);
+			scrollSizer->Add(sensorPanel, 0, wxEXPAND | wxALL, 5);
+
+			
+			scrolledWindow->SetSizer(scrollSizer);
+			scrolledWindow->FitInside();
+			scrolledWindow->SetScrollRate(10, 10);
+
+
+
 
 			// --------------------------------------------------------------------------------------------------------------------------------------------------------
 			
@@ -543,6 +780,9 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			LOG_ACTION()
 		}
 }
+
+
+
 
 void LoggingPage::OnResetButtonClicked(wxCommandEvent& evt) {
 	STAGE_ACTION("Reset log button clicked")

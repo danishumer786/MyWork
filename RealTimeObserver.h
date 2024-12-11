@@ -10,6 +10,21 @@ enum class PlotType { Diode, Power, TEC, Sensors };
 
 
 class RealTimeObserver : public LogObserver {
+private:
+    wxString alarmMessage_;
+    wxString alarmTime_;
+    wxString lastAlarmMessage_;
+    wxString lastAlarmTime_;
+    wxTextCtrl* textCtrl_;
+    wxTextCtrl* alarmTextCtrl_;
+    GraphPlotting* currentPlot_ = nullptr;
+    GraphPlotting* voltagePlot_ = nullptr;
+    GraphPlotting* tempPlot_ = nullptr;
+    GraphPlotting* diodePlot_ = nullptr;
+    GraphPlotting* powerPlot_ = nullptr;
+    GraphPlotting* sensorPlot_ = nullptr;
+    bool alarmTriggered_;
+
 public:
     // Constructor for TEC plots (current, voltage, temperature)
     RealTimeObserver(wxTextCtrl* textCtrl, GraphPlotting* currentPlot, GraphPlotting* voltagePlot, GraphPlotting* tempPlot)
@@ -42,23 +57,4 @@ public:
 
     // Method to handle new data points
     void onDataPointLogged(std::map<std::string, std::string> data) override;
-    
-private:
-    wxString alarmMessage_; 
-    wxString alarmTime_;
-    wxString lastAlarmMessage_;
-    wxString lastAlarmTime_;
-    wxTextCtrl* textCtrl_;
-    wxTextCtrl* alarmTextCtrl_;
-    GraphPlotting* currentPlot_ = nullptr;
-    GraphPlotting* voltagePlot_ = nullptr;
-    GraphPlotting* tempPlot_ = nullptr;
-    GraphPlotting* diodePlot_ = nullptr;
-    GraphPlotting* powerPlot_ = nullptr;  
-    GraphPlotting* sensorPlot_ = nullptr;
-    bool alarmTriggered_;
-   
-   
-
-
 };
