@@ -2,6 +2,7 @@
 #include "wx/dcbuffer.h"
 #include <algorithm>
 #include <limits>
+#include <wx/log.h>
 
 BEGIN_EVENT_TABLE(GraphPlotting, wxPanel)
 EVT_PAINT(GraphPlotting::paintEvent)
@@ -70,49 +71,50 @@ void GraphPlotting::AddTemperatureDataPoint(const std::vector<float>& temperatur
     RefreshGraph();
 }
 //--------------------------------------------------------------------------------------------------------------------------------------------------//
-void GraphPlotting::AddDiodeCurrentDataPoint(const std::vector<float>& currents, const std::vector<std::string>& labels, const wxString& time) {
+void GraphPlotting::AddDiodeCurrentDataPoint(const std::vector<float>& currents,
+    const std::vector<std::string>& labels,
+    const wxString& time) {
     if (currents.size() != labels.size()) {
-        wxLogError("Mismatch between the number of diode currents and labels.");
+        wxLogError("Mismatch: currents size (%zu) != labels size (%zu).", currents.size(), labels.size());
         return;
     }
 
+    // Add the new data point for all diodes
+    diodeCurrentData_.push_back(currents);
     timeData_.push_back(time);
 
-    
-    if (diodeCurrentData_.size() < currents.size()) {
-        diodeCurrentData_.resize(currents.size());
+    // Update labels if this is the first call
+    if (diodeCurrentLabels_.empty()) {
         diodeCurrentLabels_ = labels;
     }
 
-    
-    for (size_t i = 0; i < currents.size(); ++i) {
-        diodeCurrentData_[i].push_back(currents[i]);
-
-        
-        if (currents[i] > diodeCurrentMax_) diodeCurrentMax_ = currents[i];
-        if (currents[i] < diodeCurrentMin_) diodeCurrentMin_ = currents[i];
-
-        if (diodeCurrentData_[i].size() > maxDataPoints_) {
-            diodeCurrentData_[i].erase(diodeCurrentData_[i].begin());
-        }
+    // Update min/max values
+    for (const auto& current : currents) {
+        if (current > diodeCurrentMax_) diodeCurrentMax_ = current;
+        if (current < diodeCurrentMin_) diodeCurrentMin_ = current;
     }
 
-    
-    if (timeData_.size() > maxDataPoints_) {
+    // Maintain the max data points limit
+    if (diodeCurrentData_.size() > maxDataPoints_) {
+        diodeCurrentData_.erase(diodeCurrentData_.begin());
         timeData_.erase(timeData_.begin());
     }
 
+
     RefreshGraph();
 }
+
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------//
 void GraphPlotting::AddPowerDataPoint(const std::vector<float>& powerReadings, const std::vector<std::string>& labels, const wxString& time) {
 
     powerData_.push_back(powerReadings);
-
+    
 
     if (powerLabels_.empty() || powerLabels_.size() != labels.size()) {
         powerLabels_ = labels;
+        //wxLogMessage("PowerLabels size: %zu, Input Labels size: %zu", powerLabels_.size(), labels.size());
+
     }
 
     for (const auto& power : powerReadings) {
@@ -128,11 +130,18 @@ void GraphPlotting::AddPowerDataPoint(const std::vector<float>& powerReadings, c
     RefreshGraph();
 }
 
-
 //--------------------------------------------------------------------------------------------------------------------------------------------------//
 void GraphPlotting::AddSensorDataPoint(const std::vector<float>& sensorReadings, const std::vector<std::string>& labels, const wxString& time) {
 
     sensorData_.push_back(sensorReadings);
+    
+    //// Log all values in sensorData_
+    //for (size_t i = 0; i < sensorData_.size(); i++) {
+    //    wxLogMessage("SensorData[%zu] size: %zu", i, sensorData_[i].size());
+    //    for (size_t j = 0; j < sensorData_[i].size(); j++) {
+    //        wxLogMessage("SensorData[%zu][%zu]: %.2f", i, j, sensorData_[i][j]);
+    //    }
+    //}
 
 
     if (sensorLabels_.empty() || sensorLabels_.size() != labels.size()) {
@@ -164,7 +173,7 @@ void GraphPlotting::render(wxDC& dc) {
         return;
     }
 
-    
+
     wxDateTime startTime, endTime;
     if (!startTime.ParseFormat(timeData_.front(), "%H:%M:%S")) {
         wxLogError("Failed to parse start time: %s", timeData_.front());
@@ -176,7 +185,7 @@ void GraphPlotting::render(wxDC& dc) {
     wxTimeSpan totalDuration = endTime.Subtract(startTime);
     long totalDurationInSeconds = totalDuration.GetSeconds().ToLong();
 
-    
+
     if (totalDurationInSeconds <= 0) {
         return;
     }
@@ -215,15 +224,15 @@ void GraphPlotting::render(wxDC& dc) {
     dc.SetPen(wxPen(*wxBLACK, 1));
     dc.SetFont(wxFont(7, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL));
 
-    wxDateTime currentTime = startTime; 
-    int visibleLabels = 10; 
-    long labelInterval = totalDurationInSeconds / visibleLabels;  
+    wxDateTime currentTime = startTime;
+    int visibleLabels = 10;
+    long labelInterval = totalDurationInSeconds / visibleLabels;
 
     for (int i = 0; i <= visibleLabels; ++i) {
-        int xPos = static_cast<int>(i * labelInterval * xStep + 50);  
-        wxString timeLabel = currentTime.Format("%H:%M:%S");  
-        dc.DrawText(timeLabel, wxPoint(xPos - 10, height - 45)); 
-        currentTime.Add(wxTimeSpan::Seconds(labelInterval));  
+        int xPos = static_cast<int>(i * labelInterval * xStep + 50);
+        wxString timeLabel = currentTime.Format("%H:%M:%S");
+        dc.DrawText(timeLabel, wxPoint(xPos - 10, height - 45));
+        currentTime.Add(wxTimeSpan::Seconds(labelInterval));
     }
 
 
@@ -253,15 +262,15 @@ void GraphPlotting::render(wxDC& dc) {
                 dc.DrawLine(alarmXPosition, 50, alarmXPosition, height - 50);
 
                 // Draw a gradient effect to highlight the error
-                wxColour startColour(255, 69, 0);  
-                wxColour endColour(139, 0, 0);    
-                wxBrush gradientBrush(wxColour(255, 0, 0, 128));  
+                wxColour startColour(255, 69, 0);
+                wxColour endColour(139, 0, 0);
+                wxBrush gradientBrush(wxColour(255, 0, 0, 128));
                 dc.SetBrush(gradientBrush);
                 dc.GradientFillLinear(wxRect(alarmXPosition - 5, 50, 10, height - 100), startColour, endColour, wxSOUTH);
 
                 // Draw the alarm message next to the line
                 wxString alarmText = wxString::Format("Alarm: %s at %s", alarmMessages_[i], alarmTimes_[i]);
-                dc.SetTextForeground(wxColour(139, 0, 0));  
+                dc.SetTextForeground(wxColour(139, 0, 0));
                 dc.DrawText(alarmText, wxPoint(alarmXPosition + 5, 55));
             }
         }
@@ -295,12 +304,12 @@ void GraphPlotting::render(wxDC& dc) {
 
         for (size_t tec = 0; tec < tecCount; ++tec) {
             std::string label = currentLabels_[tec];
-            if (tecCount > checkboxes_.size()) return;  
+            if (tecCount > checkboxes_.size()) return;
 
-            if (!checkboxes_[tec]->IsChecked()) continue; 
+            if (!checkboxes_[tec]->IsChecked()) continue;
 
-            wxColour penColor = tecColors[tec % tecColorsSize];  
-            dc.SetPen(wxPen(penColor, 3));  
+            wxColour penColor = tecColors[tec % tecColorsSize];
+            dc.SetPen(wxPen(penColor, 3));
 
             // Variables to track the min, max, and sum of values for the current TEC
             float tecMin = std::numeric_limits<float>::max();
@@ -314,8 +323,8 @@ void GraphPlotting::render(wxDC& dc) {
                     float currentValue = currentData_[i][tec];
                     tecMin = std::min(tecMin, currentValue);
                     tecMax = std::max(tecMax, currentValue);
-                    sumCurrent += currentValue;  
-                    validDataPoints++;  
+                    sumCurrent += currentValue;
+                    validDataPoints++;
 
                     // Use actual timestamps from timeData_ to calculate x1 and x2
                     wxDateTime time1, time2;
@@ -381,16 +390,16 @@ void GraphPlotting::render(wxDC& dc) {
     }
     // Plot the voltage values
     if (!voltageData_.empty()) {
-        size_t tecCount = voltageData_.front().size();  
+        size_t tecCount = voltageData_.front().size();
 
         for (size_t tec = 0; tec < tecCount; ++tec) {
             std::string label = voltageLabels_[tec];
-            if (tecCount > checkboxes_.size()) return;  
+            if (tecCount > checkboxes_.size()) return;
 
-            if (!checkboxes_[tec]->IsChecked()) continue;  
+            if (!checkboxes_[tec]->IsChecked()) continue;
 
-            wxColour penColor = tecColors[tec % tecColorsSize];  
-            dc.SetPen(wxPen(penColor, 3)); 
+            wxColour penColor = tecColors[tec % tecColorsSize];
+            dc.SetPen(wxPen(penColor, 3));
 
             // Variables to track the min, max, and sum of values for the current TEC
             float tecMin = std::numeric_limits<float>::max();
@@ -404,8 +413,8 @@ void GraphPlotting::render(wxDC& dc) {
                     float voltageValue = voltageData_[i][tec];
                     tecMin = std::min(tecMin, voltageValue);
                     tecMax = std::max(tecMax, voltageValue);
-                    sumVoltage += voltageValue;  
-                    validDataPoints++;  
+                    sumVoltage += voltageValue;
+                    validDataPoints++;
 
                     wxDateTime time1, time2;
                     if (time1.ParseFormat(timeData_[i - 1], "%H:%M:%S") && time2.ParseFormat(timeData_[i], "%H:%M:%S")) {
@@ -468,16 +477,18 @@ void GraphPlotting::render(wxDC& dc) {
     }
     // Plot the temperature values
     if (!temperatureData_.empty()) {
-        size_t tecCount = temperatureData_.front().size();  
+        size_t tecCount = temperatureData_.front().size();
+        // wxLogMessage("Number of temperature: %zu", tecCount);
 
         for (size_t tec = 0; tec < tecCount; ++tec) {
             std::string label = tempLabels_[tec];
-            if (tecCount > checkboxes_.size()) return;  
+            // wxLogMessage("temperature %zu Label: %s", tecCount, label.c_str());
+            if (tecCount > checkboxes_.size()) return;
 
-            if (!checkboxes_[tec]->IsChecked()) continue; 
+            if (!checkboxes_[tec]->IsChecked()) continue;
 
-            wxColour penColor = tecColors[tec % tecColorsSize];  
-            dc.SetPen(wxPen(penColor, 3));  
+            wxColour penColor = tecColors[tec % tecColorsSize];
+            dc.SetPen(wxPen(penColor, 3));
 
             // Variables to track the min, max, and sum of values for the current TEC
             float tecMin = std::numeric_limits<float>::max();
@@ -491,8 +502,8 @@ void GraphPlotting::render(wxDC& dc) {
                     float tempValue = temperatureData_[i][tec];
                     tecMin = std::min(tecMin, tempValue);
                     tecMax = std::max(tecMax, tempValue);
-                    sumTemp += tempValue;  
-                    validDataPoints++;  
+                    sumTemp += tempValue;
+                    validDataPoints++;
 
                     // Use actual timestamps from timeData_ to calculate x1 and x2
                     wxDateTime time1, time2;
@@ -546,24 +557,28 @@ void GraphPlotting::render(wxDC& dc) {
         }
     }
     if (!diodeCurrentData_.empty()) {
-        size_t diodeCount = diodeCurrentData_.size();  
+        size_t diodeCount = diodeCurrentData_.front().size();  // Number of Diodes
+        //wxLogMessage("Number of diodes: %zu", diodeCount);
 
         for (size_t diode = 0; diode < diodeCount; ++diode) {
+            if (diode >= diodeCurrentLabels_.size()) continue;
+
             std::string label = diodeCurrentLabels_[diode];
+            if (diodeCount > checkboxes_.size()) return;
 
-            if (diodeCount > checkboxes_.size()) return;  
-            if (!checkboxes_[diode]->IsChecked()) continue;  
+            if (!checkboxes_[diode]->IsChecked()) continue;
 
-            wxColour penColor = tecColors[diode % tecColorsSize];  
-            dc.SetPen(wxPen(penColor, 3));  
+            wxColour penColor = tecColors[diode % tecColorsSize];
+            dc.SetPen(wxPen(penColor, 3));
+
             float diodeMin = std::numeric_limits<float>::max();
             float diodeMax = std::numeric_limits<float>::min();
             float sumDiodeCurrent = 0.0;
             size_t validDataPoints = 0;
 
-            for (size_t i = 1; i < diodeCurrentData_[diode].size(); ++i) {
-                if (i < diodeCurrentData_[diode].size()) {
-                    float diodeCurrentValue = diodeCurrentData_[diode][i];
+            for (size_t i = 1; i < diodeCurrentData_.size(); ++i) {
+                if (diode < diodeCurrentData_[i - 1].size() && diode < diodeCurrentData_[i].size()) {
+                    float diodeCurrentValue = diodeCurrentData_[i][diode];
                     diodeMin = std::min(diodeMin, diodeCurrentValue);
                     diodeMax = std::max(diodeMax, diodeCurrentValue);
                     sumDiodeCurrent += diodeCurrentValue;
@@ -578,12 +593,11 @@ void GraphPlotting::render(wxDC& dc) {
                         long seconds2 = diff2.GetSeconds().ToLong();
 
                         int x1 = static_cast<int>((seconds1 * xStep) + 50);
-                        int y1 = height - 50 - static_cast<int>((diodeCurrentData_[diode][i - 1] - diodeCurrentMin_) * yScaleDiodeCurrent);
+                        int y1 = height - 50 - static_cast<int>((diodeCurrentData_[i - 1][diode] - diodeCurrentMin_) * yScaleDiodeCurrent);
 
                         int x2 = static_cast<int>((seconds2 * xStep) + 50);
-                        int y2 = height - 50 - static_cast<int>((diodeCurrentData_[diode][i] - diodeCurrentMin_) * yScaleDiodeCurrent);
+                        int y2 = height - 50 - static_cast<int>((diodeCurrentData_[i][diode] - diodeCurrentMin_) * yScaleDiodeCurrent);
 
-                        // Draw the current line for the TEC
                         dc.DrawLine(x1, y1, x2, y2);
                     }
                 }
@@ -607,38 +621,50 @@ void GraphPlotting::render(wxDC& dc) {
                 }
             }
 
-            // Mean and standard deviation
-            float diodeMean = validDataPoints > 0 ? sumDiodeCurrent / validDataPoints : 0.0;
+            float mean = validDataPoints > 0 ? sumDiodeCurrent / validDataPoints : 0.0;
             float variance = 0.0;
-            for (size_t i = 1; i < diodeCurrentData_[diode].size(); ++i) {
-                float diodeCurrentValue = diodeCurrentData_[diode][i];
-                variance += std::pow(diodeCurrentValue - diodeMean, 2);
+
+            for (size_t i = 1; i < diodeCurrentData_.size(); ++i) {
+                if (diode < diodeCurrentData_[i].size()) {
+                    float currentValue = diodeCurrentData_[i][diode];
+                    variance += std::pow(currentValue - mean, 2);
+                }
             }
-            float diodeStdDev = validDataPoints > 1 ? std::sqrt(variance / (validDataPoints - 1)) : 0.0;
 
-            wxString diodeLabel = wxString::Format("%s (Min: %.2f, Max: %.2f, Mean: %.2f, Standard Deviation: %.2f)",
-                label, diodeMin, diodeMax, diodeMean, diodeStdDev);
+            float stdDev = validDataPoints > 1 ? std::sqrt(variance / (validDataPoints - 1)) : 0.0;
+
+            wxString displayLabel = wxString::Format("%s (Min: %.2f, Max: %.2f, Mean: %.2f, StdDev: %.2f)",
+                label, diodeMin, diodeMax, mean, stdDev);
             int xLegendPos = 50 + (diode * 380);
-            dc.SetPen(wxPen(penColor, 3));
             dc.DrawLine(xLegendPos, height - 20, xLegendPos + 30, height - 20);
-            dc.DrawText(diodeLabel, wxPoint(xLegendPos + 40, height - 30));
+            dc.DrawText(displayLabel, wxPoint(xLegendPos + 40, height - 30));
 
-            
-            
+
         }
     }
+
+    // Plot the power values
     // Plot the power values
     if (!powerData_.empty()) {
-        size_t tecCount = powerData_.front().size();  
+        size_t tecCount = powerData_.front().size();  // Number of power monitors
+        //wxLogMessage("Number of tecCount is %zu", tecCount);
 
         for (size_t tec = 0; tec < tecCount; ++tec) {
+            if (tec >= powerLabels_.size()) {
+                wxLogError("Out of bounds: powerLabels_ size (%zu) < tec index (%zu)", powerLabels_.size(), tec);
+                continue;
+            }
             std::string label = powerLabels_[tec];
-            if (tecCount > checkboxes_.size()) return;  
 
-            if (!checkboxes_[tec]->IsChecked()) continue;  
+            if (tecCount > checkboxes_.size()) {
+                wxLogError("Mismatch: tecCount (%zu) > checkboxes size (%zu)", tecCount, checkboxes_.size());
+                return;  // Safety check
+            }
 
-            wxColour penColor = tecColors[tec % tecColorsSize]; 
-            dc.SetPen(wxPen(penColor, 3));
+            if (!checkboxes_[tec]->IsChecked()) continue;
+
+            wxColour penColor = tecColors[tec % tecColorsSize];  // Cycle through the color palette
+            dc.SetPen(wxPen(penColor, 3));  // Set the color for the power plot
 
             // Variables to track the min, max, and sum of values for the current TEC
             float tecMin = std::numeric_limits<float>::max();
@@ -652,8 +678,8 @@ void GraphPlotting::render(wxDC& dc) {
                     float powerValue = powerData_[i][tec];
                     tecMin = std::min(tecMin, powerValue);
                     tecMax = std::max(tecMax, powerValue);
-                    sumPower += powerValue;  
-                    validDataPoints++; 
+                    sumPower += powerValue;  // Add to sum for mean calculation
+                    validDataPoints++;  // Count valid data points
 
                     wxDateTime time1, time2;
                     if (time1.ParseFormat(timeData_[i - 1], "%H:%M:%S") && time2.ParseFormat(timeData_[i], "%H:%M:%S")) {
@@ -704,33 +730,45 @@ void GraphPlotting::render(wxDC& dc) {
             dc.DrawText(tecLabel, wxPoint(xLegendPos + 40, height - 30));
         }
     }
-    // Plot the sensor values
+
+
     if (!sensorData_.empty()) {
-        size_t tecCount = sensorData_.front().size(); 
+        size_t tecCount = sensorData_.front().size();
+        //wxLogMessage("No of tecCount is :", tecCount);
+        if (tecCount > checkboxes_.size()) {
+            wxLogError("Mismatch: tecCount (%zu) > checkboxes size (%zu)", tecCount, checkboxes_.size());
+            tecCount = checkboxes_.size();  // Adjust to avoid out-of-bounds access
+        }
+
+        if (timeData_.size() != sensorData_.size()) {
+            wxLogError("Mismatch: timeData_ size (%zu) != sensorData_ size (%zu)", timeData_.size(), sensorData_.size());
+            return;
+        }
 
         for (size_t tec = 0; tec < tecCount; ++tec) {
-            std::string label = sensorLabels_[tec];
-            if (tecCount > checkboxes_.size()) return;  
+            if (tec >= sensorLabels_.size()) {
+                wxLogError("Out of bounds: sensorLabels_ size (%zu) < tec index (%zu)", sensorLabels_.size(), tec);
+                continue;
+            }
 
+            std::string label = sensorLabels_[tec];
             if (!checkboxes_[tec]->IsChecked()) continue;
 
-            wxColour penColor = tecColors[tec % tecColorsSize];  
-            dc.SetPen(wxPen(penColor, 3));  
+            wxColour penColor = tecColors[tec % tecColorsSize];
+            dc.SetPen(wxPen(penColor, 3));
 
-            // Variables to track the min, max, and sum of values for the current TEC
             float tecMin = std::numeric_limits<float>::max();
             float tecMax = std::numeric_limits<float>::min();
             float sumSensor = 0.0;
             size_t validDataPoints = 0;
 
-            // Plot the sensor graph line and calculate min/max values
             for (size_t i = 1; i < sensorData_.size(); ++i) {
                 if (tec < sensorData_[i - 1].size() && tec < sensorData_[i].size()) {
                     float sensorValue = sensorData_[i][tec];
                     tecMin = std::min(tecMin, sensorValue);
                     tecMax = std::max(tecMax, sensorValue);
-                    sumSensor += sensorValue;  // Add to sum for mean calculation
-                    validDataPoints++;  // Count valid data points
+                    sumSensor += sensorValue;
+                    validDataPoints++;
 
                     wxDateTime time1, time2;
                     if (time1.ParseFormat(timeData_[i - 1], "%H:%M:%S") && time2.ParseFormat(timeData_[i], "%H:%M:%S")) {
@@ -746,13 +784,11 @@ void GraphPlotting::render(wxDC& dc) {
                         int x2 = static_cast<int>((seconds2 * xStep) + 50);
                         int y2 = height - 50 - static_cast<int>((sensorData_[i][tec] - sensorMin_) * yScaleSensor);
 
-                        // Draw the current line for the TEC
                         dc.DrawLine(x1, y1, x2, y2);
                     }
                 }
             }
 
-            // Display the latest sensor value at the right end of the line
             if (!sensorData_.empty() && tec < sensorData_.back().size()) {
                 float latestSensorValue = sensorData_.back()[tec];
 
@@ -763,14 +799,12 @@ void GraphPlotting::render(wxDC& dc) {
                     int xEnd = static_cast<int>((endSeconds * xStep) + 50);
                     int yEnd = height - 50 - static_cast<int>((latestSensorValue - sensorMin_) * yScaleSensor);
 
-                    // Draw the current value at the end of the line
                     wxString currentValueLabel = wxString::Format("%.2f", latestSensorValue);
                     dc.SetFont(wxFont(8, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL));
                     dc.DrawText(currentValueLabel, wxPoint(xEnd + 5, yEnd - 10));
                 }
             }
 
-            // Draw the legend below the X-axis (color and TEC label along with min/max values)
             float tecMean = validDataPoints > 0 ? sumSensor / validDataPoints : 0.0;
             wxString tecLabel = wxString::Format("%s (Min: %.2f, Max: %.2f, Mean: %.2f)", label, tecMin, tecMax, tecMean);
 

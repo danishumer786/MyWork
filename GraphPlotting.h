@@ -5,6 +5,7 @@
 #include <deque>
 #include <set>
 #include <map>  
+#include <wx/log.h>
 
 class GraphPlotting : public wxPanel {
 public:

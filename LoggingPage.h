@@ -23,6 +23,7 @@ private:
 	string categoryName;
 
 	void OnLogDataCategoryCheckboxChecked(wxCommandEvent& evt);
+	
 
 
 public:
@@ -38,6 +39,7 @@ public:
 	LoggingPage(std::shared_ptr<MainLaserControllerInterface> _lc, wxWindow* parent);
 
 
+
 	void Init();
 	void RefreshAll();
 	void RefreshStrings();
@@ -47,11 +49,14 @@ public:
 
 
 
+
 private:
 
 	std::shared_ptr<CustomLogger> logger;
 	std::vector<LogCategoryCheckbox*> categoryCheckboxes;
 	wxTimer logTimer;
+	std::function<void()> updateLayout__;
+	
 
 	unsigned int totalLogTimeInS = 0;
 	GraphPlotting* graphPlot_;
@@ -93,6 +98,8 @@ private:
 	wxPanel* sensorPanel;            // Sensor panel reference
 
 	wxBoxSizer* mainSizer;           // Main sizer for layout adjustments
+	wxPanel* powerContentPanel;
+	wxBitmapButton* powerToggleButton;
 	 
 
 private:

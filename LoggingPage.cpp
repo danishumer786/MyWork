@@ -332,8 +332,10 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 				});
 
 			// Observer to monitor real-time data and handle alarm updates
+			// Observer to monitor real-time data and handle alarm updates
 			RealTimeObserver* observer = new RealTimeObserver(RealTimeTempLogTextCtrl, alarmTextCtrl);
 			logger->addObserver(observer);
+
 
 
 
@@ -499,7 +501,30 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 
 
 
-			RealTimeObserver* tecObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, currentPlot, voltagePlot, tempPlot);
+			/*RealTimeObserver* tecObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, currentPlot, voltagePlot, tempPlot);
+			logger->addObserver(tecObserver);*/
+
+
+			// RealTimeObserver setup for TEC Current
+			RealTimeObserver* tecObserver = new RealTimeObserver(
+				RealTimeTempLogTextCtrl,          // Log text control
+				currentPlot,  
+				voltagePlot,
+				tempPlot,                         // GraphPlotting instance
+				currentPanel,                     // TEC Current panel
+				currentToggleButton,   
+				voltagePanel,
+				voltageToggleButton,
+				tempPanel,
+				tempToggleButton,                 // TEC Current toggle button
+				tecContainer,                     // TEC Container panel
+				mainTecTogglePanel,               // Main TEC toggle panel
+				tecPanelToggleButton,             // TEC Panel toggle button
+				expandBitmap,                     // Bitmap for "expand"
+				collapseBitmap,                   // Bitmap for "collapse"
+				updateLayout                      // Layout updater function...
+			);
+
 			logger->addObserver(tecObserver);
 
 			// Finalize the TEC Panel
@@ -520,6 +545,12 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			wxBoxSizer* diodeSizer = new wxBoxSizer(wxVERTICAL);
 
 			GraphPlotting* diodePlot = nullptr;
+
+			auto diodeUpdateLayout = [scrolledWindow, diodePanel]() {
+				scrolledWindow->Layout();
+				scrolledWindow->FitInside();
+				diodePanel->Layout();
+				};
 
 
 			wxPanel* diodeTogglePanel = new wxPanel(diodePanel, wxID_ANY);
@@ -582,8 +613,17 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 				});
 
 
-			RealTimeObserver* diodeObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, diodePlot, PlotType::Diode);
+			RealTimeObserver* diodeObserver = new RealTimeObserver(
+				RealTimeTempLogTextCtrl,
+				diodePlot,
+				PlotType::Diode,
+				diodeContentPanel,
+				diodeToggleButton,
+				diodeTogglePanel,
+				diodeUpdateLayout
+			);
 			logger->addObserver(diodeObserver);
+			
 
 
 			diodePanel->SetSizer(diodeSizer);
@@ -601,6 +641,13 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			wxBoxSizer* powerSizer = new wxBoxSizer(wxVERTICAL);
 
 			GraphPlotting* powerPlot = nullptr;
+
+			auto powerUpdateLayout = [scrolledWindow, powerPanel]() {
+				scrolledWindow->Layout();
+				scrolledWindow->FitInside();
+				powerPanel->Layout();
+				};
+
 
 			// Power Toggle Button
 			wxPanel* powerTogglePanel = new wxPanel(powerPanel, wxID_ANY);
@@ -622,8 +669,10 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 			wxBoxSizer* powerCheckboxSizer = new wxBoxSizer(wxHORIZONTAL);
 
 			vector<int> powerMonitorIDs = lc->GetPowerMonitorIDs();
+			//wxLogMessage("PowerMonitorIDs size: %zu", powerMonitorIDs.size());
 			for (int id : powerMonitorIDs) {
 				std::string label = lc->GetPowerMonitorLabel(id);
+				//wxLogMessage("PowerMonitor ID: %d, Label: %s", id, label.c_str());
 				wxCheckBox* powerCheckBox = new wxCheckBox(powerContentPanel, wxID_ANY, label, wxDefaultPosition, wxDefaultSize);
 				powerCheckBox->SetValue(true);
 
@@ -635,6 +684,7 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 
 				powerCheckboxes.push_back(powerCheckBox);
 				powerCheckboxSizer->Add(powerCheckBox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+				//wxLogMessage("PowerCheckboxes size: %zu", powerCheckboxes.size());
 			}
 			powerContentSizer->Add(powerCheckboxSizer, 0, wxEXPAND | wxALL, 5);
 
@@ -662,10 +712,16 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 				scrolledWindow->Update();
 				});
 
-			// Add Observer for Power Data
-			RealTimeObserver* powerObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, powerPlot, PlotType::Power);
+			RealTimeObserver* powerObserver = new RealTimeObserver(
+				RealTimeTempLogTextCtrl,
+				powerPlot,
+				PlotType::Power,
+				powerContentPanel,
+				powerToggleButton,
+				powerTogglePanel,
+				powerUpdateLayout
+			);
 			logger->addObserver(powerObserver);
-
 			powerPanel->SetSizer(powerSizer);
 			scrollSizer->Add(powerPanel, 0, wxEXPAND | wxALL, 5); // Add panel without fixed proportion
 
@@ -676,13 +732,19 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 
 
 
-
 			//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 			wxPanel* sensorPanel = new wxPanel(scrolledWindow, wxID_ANY);
 			wxBoxSizer* sensorSizer = new wxBoxSizer(wxVERTICAL);
 
 			GraphPlotting* sensorPlot = nullptr;
+
+			auto sensorUpdateLayout = [scrolledWindow, sensorPanel]() {
+				scrolledWindow->Layout();
+				scrolledWindow->FitInside();
+				sensorPanel->Layout();
+				};
+
 
 
 			wxPanel* sensorTogglePanel = new wxPanel(sensorPanel, wxID_ANY);
@@ -747,8 +809,15 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 				scrolledWindow->Update();
 				});
 
-			// Add observer for sensor data
-			RealTimeObserver* sensorObserver = new RealTimeObserver(RealTimeTempLogTextCtrl, sensorPlot, PlotType::Sensors);
+			RealTimeObserver* sensorObserver = new RealTimeObserver(
+				RealTimeTempLogTextCtrl,
+				sensorPlot,
+				PlotType::Sensors,
+				sensorContentPanel,
+				sensorToggleButton,
+				sensorTogglePanel,
+				sensorUpdateLayout
+			);
 			logger->addObserver(sensorObserver);
 
 			sensorPanel->SetSizer(sensorSizer);
@@ -793,8 +862,6 @@ void LoggingPage::OnStartButtonClicked(wxCommandEvent& evt) {
 
 //GraphingWork graphingWork(this, logger, RealTimeTempLogTextCtrl, lc); // Pass RealTimeTempLogTextCtrl
 //graphingWork.CreateGraphWindow();
-
-
 
 
 

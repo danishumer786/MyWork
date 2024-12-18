@@ -3,37 +3,16 @@
 #include <wx/log.h>
 
 void RealTimeObserver::onDataPointLogged(std::map<std::string, std::string> data) {
+    bool visibilityUpdated = false;
     printf("i received the data");
     textCtrl_->AppendText("Received Data:\n");
     wxString currentTime = wxDateTime::Now().Format("%H:%M:%S");
 
-    std::vector<std::string> alarms; 
-
     
-    std::vector<float> currents;
-    std::vector<float> voltages;
-    std::vector<float> temperatures;
-    std::vector<float> diodeCurrents;
-    std::vector<float> powerReadings;
-    std::vector<float> sensorReadings;
-    std::vector<std::string> sensorLabels;
-
-    std::vector<std::string> currentLabels;
-    std::vector<std::string> voltageLabels;
-    std::vector<std::string> tempLabels;
-    std::vector<std::string> diodeCurrentLabels;
-    std::vector<std::string> powerLabels;
-
-    bool currentDataFound = false;
-    bool voltageDataFound = false;
-    bool tempDataFound = false;
-    bool diodeCurrentDataFound = false;
-    bool powerDataFound = false;
-    bool sensorDataFound = false;
-    bool alarmDataFound = false;
 
     for (const auto& entry : data) {
         std::string logEntry = entry.first + ": " + entry.second + "\n";
+        //wxLogMessage("Entry Key: %s, Entry Value: %s", entry.first.c_str(), entry.second.c_str());
         textCtrl_->AppendText(logEntry);
 
         try {
@@ -44,6 +23,7 @@ void RealTimeObserver::onDataPointLogged(std::map<std::string, std::string> data
                 currents.push_back(currentValue);
                 currentLabels.push_back(label);
                 currentDataFound = true;
+
             }
             // Handle TEC voltage values
             else if (entry.first.find("TecVoltage-") != std::string::npos) {
@@ -71,20 +51,51 @@ void RealTimeObserver::onDataPointLogged(std::map<std::string, std::string> data
             }
             // Handle Power readings
             else if (entry.first.find("PowerMonitor-") != std::string::npos) {
+            //wxLogMessage("PowerMonitor entry detected: key = %s, value = %s",entry.first.c_str(), entry.second.c_str());
                 float powerValue = std::stof(entry.second);
                 std::string label = entry.first.substr(entry.first.find("-") + 1);
                 powerReadings.push_back(powerValue);
+
                 powerLabels.push_back(label);
+
                 powerDataFound = true;
+                //wxLogMessage("Power value: %.2f, Label: %s", powerValue, label.c_str());
+
             }
+            // Handle Sensor readings (Flow/Humidity)
             // Handle Sensor readings (Flow/Humidity)
             else if (entry.first.find("Flow") != std::string::npos || entry.first.find("Humidity-") != std::string::npos) {
                 float sensorValue = std::stof(entry.second);
-                std::string label = entry.first.substr(entry.first.find("-") + 1);
+                std::string label;
+
+                // Handle "Flow" and "Humidity-<label>" cases separately
+                if (entry.first.find("Flow") != std::string::npos) {
+                    label = "Flow";  // Directly assign "Flow" as the label
+                }
+                else if (entry.first.find("Humidity-") != std::string::npos) {
+                    label = entry.first.substr(entry.first.find("-") + 1);  // Extract label after "-"
+                }
+
                 sensorReadings.push_back(sensorValue);
                 sensorLabels.push_back(label);
                 sensorDataFound = true;
-            } 
+
+                //// Log messages for debugging the flow of data
+                ////wxLogMessage("Sensor Value: %.2f", sensorValue);
+                ////wxLogMessage("Current sensorReadings size: %zu", sensorReadings.size());
+                //for (size_t i = 0; i < sensorReadings.size(); ++i) {
+                //    wxLogMessage("sensorReadings[%zu]: %.2f", i, sensorReadings[i]);
+                //}
+                //wxLogMessage("Current sensorLabels size: %zu", sensorLabels.size());
+                //for (size_t i = 0; i < sensorLabels.size(); ++i) {
+                //    wxLogMessage("sensorLabels[%zu]: %s", i, sensorLabels[i].c_str());
+                //}
+                //wxLogMessage("Sensor Data Found: %s", sensorDataFound ? "true" : "false");
+            }
+
+
+
+
 
             // Handle Alarms
             else if (entry.first.find("Alarms") != std::string::npos) {
@@ -109,32 +120,129 @@ void RealTimeObserver::onDataPointLogged(std::map<std::string, std::string> data
         }
     }
 
-    // Pass data to the respective TEC plots
-    if (currentDataFound && currentPlot_) {
-        currentPlot_->AddCurrentDataPoint(currents, currentLabels, currentTime);
+
+
+
+    // Ensure all parent panels are open
+    if (currentDataFound&&mainTecTogglePanel_ && tecContainer_&& currentPanel_ && currentToggleButton_) {
+        if (!mainTecTogglePanel_->IsShown()&& !tecContainer_->IsShown()&& !currentPanel_->IsShown())
+        mainTecTogglePanel_->Show();
+        tecContainer_->IsShown();
+        tecPanelToggleButton_->SetBitmap(collapseBitmap);
+        tecContainer_->Show();
+        currentPanel_->IsShown();
+        currentPanel_->Show();
+        currentToggleButton_->SetBitmap(collapseBitmap);
+        updateLayout_();
+
+
+        // Append data to the plot
+        if (currentPlot_) {
+
+            currentPlot_->AddCurrentDataPoint(currents, currentLabels, currentTime);
+        }
+
+
+
     }
-    if (voltageDataFound && voltagePlot_) {
-        voltagePlot_->AddVoltageDataPoint(voltages, voltageLabels, currentTime);
+    
+    if (voltageDataFound && mainTecTogglePanel_ && tecContainer_ && voltagePanel_ && voltageToggleButton_) {
+        if (!mainTecTogglePanel_->IsShown() && !tecContainer_->IsShown() && !voltagePanel_->IsShown())
+            mainTecTogglePanel_->Show();
+        tecContainer_->IsShown();
+        tecPanelToggleButton_->SetBitmap(collapseBitmap);
+        tecContainer_->Show();
+        voltagePanel_->IsShown();
+        voltagePanel_->Show();
+        voltageToggleButton_->SetBitmap(collapseBitmap);
+        updateLayout_();
+
+
+        // Append data to the plot
+        if (voltagePlot_) {
+
+            voltagePlot_->AddCurrentDataPoint(voltages, voltageLabels, currentTime);
+        }
     }
-    if (tempDataFound && tempPlot_) {
-        tempPlot_->AddTemperatureDataPoint(temperatures, tempLabels, currentTime);
+    
+    if (tempDataFound && mainTecTogglePanel_ && tecContainer_ && voltagePanel_ && tempToggleButton_) {
+        if (!mainTecTogglePanel_->IsShown() && !tecContainer_->IsShown() && !tempPanel_->IsShown())
+            mainTecTogglePanel_->Show();
+        tecContainer_->IsShown();
+        tecPanelToggleButton_->SetBitmap(collapseBitmap);
+        tecContainer_->Show();
+        tempPanel_->IsShown();
+        tempPanel_->Show();
+        voltageToggleButton_->SetBitmap(collapseBitmap);
+        updateLayout_();
+
+
+        // Append data to the plot
+        if (tempPlot_) {
+
+            tempPlot_->AddCurrentDataPoint(temperatures, tempLabels, currentTime);
+        }
     }
 
     // Pass data to the Diode plot
-    if (diodeCurrentDataFound && diodePlot_) {
-        diodePlot_->AddDiodeCurrentDataPoint(diodeCurrents, diodeCurrentLabels, currentTime);
+    if (diodeCurrentDataFound && diodeTogglePanel_ && diodeContentPanel_ && diodeToggleButton_) {
+        if (!diodeTogglePanel_->IsShown()) {
+            diodeTogglePanel_->Show();
+            visibilityUpdated = true; // Set visibility flag
+        }
+        if (!diodeContentPanel_->IsShown()) {
+            diodeContentPanel_->Show();
+            visibilityUpdated = true; // Set visibility flag
+        }
+        diodeToggleButton_->SetBitmap(collapseBitmap);
+
+        if (diodePlot_) {
+            diodePlot_->AddDiodeCurrentDataPoint(diodeCurrents, diodeCurrentLabels, currentTime);
+        }
     }
 
     // Pass data to the Power plot
-    if (powerDataFound && powerPlot_) {
-        powerPlot_->AddPowerDataPoint(powerReadings, powerLabels, currentTime);
+    if (powerDataFound && powerTogglePanel_ && powerContentPanel_ && powerToggleButton_) {
+        if (!powerTogglePanel_->IsShown()) {
+            powerTogglePanel_->Show();
+            visibilityUpdated = true; // Set visibility flag
+        }
+        if (!powerContentPanel_->IsShown()) {
+            powerContentPanel_->Show();
+            visibilityUpdated = true; // Set visibility flag
+        }
+        powerToggleButton_->SetBitmap(collapseBitmap);
+
+        if (powerPlot_) {
+            powerPlot_->AddPowerDataPoint(powerReadings, powerLabels, currentTime);
+        }
     }
 
     // Pass data to the Sensor plot
-    if (sensorDataFound && sensorPlot_) {
-        sensorPlot_->AddSensorDataPoint(sensorReadings, sensorLabels, currentTime);
+    if (sensorDataFound && sensorTogglePanel_ && sensorContentPanel_ && sensorToggleButton_) {
+        if (!sensorTogglePanel_->IsShown()) {
+            sensorTogglePanel_->Show();
+            visibilityUpdated = true; // Set visibility flag
+        }
+        if (!sensorContentPanel_->IsShown()) {
+            sensorContentPanel_->Show();
+            visibilityUpdated = true; // Set visibility flag
+        }
+        sensorToggleButton_->SetBitmap(collapseBitmap);
+
+        if (sensorPlot_) {
+            sensorPlot_->AddSensorDataPoint(sensorReadings, sensorLabels, currentTime);
+        }
     }
 
+    // Dynamically update layout if visibility changed
+    if (visibilityUpdated && updateLayout_) {
+        updateLayout_();
+    }
+
+
+
+    
     
     if (alarmDataFound) {
         alarmTriggered_ = true;  
@@ -157,9 +265,12 @@ void RealTimeObserver::onDataPointLogged(std::map<std::string, std::string> data
            
         
     }
+    // Update layout dynamically if any visibility changed
+    if (visibilityUpdated && updateLayout_) {
+        updateLayout_();
 
-    
 
+    }
 }
     
     
